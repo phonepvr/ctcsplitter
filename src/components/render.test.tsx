@@ -6,6 +6,7 @@ import { buildTooltips } from '../data/strings';
 import { toInputs, initialForm, type FormState } from '../state/form';
 import { ComparisonPanel } from './comparison/ComparisonPanel';
 import { StructurePanel } from './structure/StructurePanel';
+import { Wizard } from './Wizard';
 
 // Golden form: M-9, Plant, Basic 40, HRA 40, Transport Y, CEA/CHA 1 child,
 // Food 9600, BER Y, LTA N, PF Y, NPS 0, MPLI 12, option 2; candidate set so
@@ -49,5 +50,26 @@ describe('UI smoke render (golden numbers)', () => {
     expect(html).toContain('Mediclaim');
     // transport overshoot warning is shown (transport = Y)
     expect(html).toContain('over-and-above');
+  });
+});
+
+describe('Wizard step flow', () => {
+  it('renders the stepper and starts on step 1', () => {
+    const html = renderToStaticMarkup(
+      <Wizard
+        form={form}
+        setForm={() => {}}
+        master={bundledMaster}
+        inputs={inputs}
+        result={result}
+        tooltips={tooltips}
+        paise={false}
+        setPaise={() => {}}
+      />,
+    );
+    expect(html).toContain('Step 1 of 4');
+    expect(html).toContain('Current pay'); // stepper label
+    expect(html).toContain('Review'); // stepper label for step 4
+    expect(html).toContain('Continue to offer'); // primary nav button
   });
 });

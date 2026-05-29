@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LevelMaster, FinalOption } from './engine/types';
+import type { LevelMaster } from './engine/types';
 import { computeOffer, MissingLevelError } from './engine/engine';
 import { buildTooltips } from './data/strings';
 import { emptyMaster, hasData, parseUserJson } from './data/dataProvider';
 import { initialForm, toInputs, type FormState } from './state/form';
 import { AppHeader } from './components/Layout/AppHeader';
-import { InputPanel } from './components/inputs/InputPanel';
-import { ComparisonPanel } from './components/comparison/ComparisonPanel';
-import { StructurePanel } from './components/structure/StructurePanel';
+import { Wizard } from './components/Wizard';
 import { Button, Chip, Eyebrow } from './components/common/ui';
 
 function DataBar({
@@ -36,8 +34,8 @@ function NoData({ onPick, error }: { onPick: () => void; error: string | null })
       <h2 className="mt-1 text-h3 text-ink">Load the source compensation tables</h2>
       <p className="mx-auto mt-2 max-w-md text-[13px] text-muted">
         For confidentiality, the level master is not shipped with this app. Load your local{' '}
-        <code className="font-mono text-[12px]">level-master.json</code> to begin. It stays in
-        your browser and is never uploaded.
+        <code className="font-mono text-[12px]">level-master.json</code> to begin. It stays in your
+        browser and is never uploaded.
       </p>
       <div className="mt-4 flex justify-center">
         <Button onClick={onPick}>Choose JSON file</Button>
@@ -56,7 +54,7 @@ export default function App() {
 
   // Dev-only convenience: auto-load the bundled sample tables. The dynamic
   // import is guarded by import.meta.env.DEV, so it is stripped from the
-  // production build (verified by `npm run check-leak`). In production the HRBP
+  // production build (verified by `npm run check-leak`). In production the user
   // must load a local JSON instead — nothing confidential ships in the bundle.
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -102,36 +100,26 @@ export default function App() {
         onChange={(e) => onFile(e.target.files?.[0])}
       />
       <main className="mx-auto max-w-wide px-4 py-4">
-        <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="no-print mb-4 flex items-center">
           <DataBar master={master} error={dataError} onPick={pick} />
-          <label className="flex items-center gap-2 text-[12px] text-graphite-700">
-            <input type="checkbox" checked={paise} onChange={(e) => setPaise(e.target.checked)} />
-            Show paise
-          </label>
         </div>
 
         {!ready ? (
           <NoData onPick={pick} error={dataError} />
+        ) : result ? (
+          <Wizard
+            form={form}
+            setForm={setForm}
+            master={master}
+            inputs={inputs}
+            result={result}
+            tooltips={tooltips}
+            paise={paise}
+            setPaise={setPaise}
+          />
         ) : (
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-            <div className="no-print xl:col-span-3">
-              <InputPanel form={form} setForm={setForm} master={master} />
-            </div>
-            <div className="no-print xl:col-span-4">
-              {result && (
-                <ComparisonPanel
-                  result={result}
-                  tooltips={tooltips}
-                  paise={paise}
-                  onSelectOption={(o: FinalOption) =>
-                    setForm((f) => ({ ...f, offer: { ...f.offer, finalOption: o } }))
-                  }
-                />
-              )}
-            </div>
-            <div className="print-full xl:col-span-5">
-              {result && <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={paise} />}
-            </div>
+          <div className="card p-4 text-[13px] text-muted">
+            No data is loaded for level {form.offer.level}. Load tables that include this level.
           </div>
         )}
       </main>

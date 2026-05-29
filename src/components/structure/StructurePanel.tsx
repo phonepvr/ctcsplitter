@@ -13,6 +13,8 @@ interface PanelProps {
   inputs: Inputs;
   tooltips: Record<string, string>;
   paise: boolean;
+  /** compact = table + warnings only (no heading/export/over-above). */
+  compact?: boolean;
 }
 
 function Alert({ tone, children }: { tone: 'red' | 'ember'; children: ReactNode }) {
@@ -147,16 +149,18 @@ function ExportBar({ result, paise }: { result: OfferResult; paise: boolean }) {
   );
 }
 
-export function StructurePanel({ result, inputs, tooltips, paise }: PanelProps) {
+export function StructurePanel({ result, inputs, tooltips, paise, compact = false }: PanelProps) {
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <Eyebrow>Compensation structure</Eyebrow>
-          <h2 className="text-h3 text-ink">{inputs.offer.level} · offer-letter breakup</h2>
+      {!compact && (
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <Eyebrow>Compensation structure</Eyebrow>
+            <h2 className="text-h3 text-ink">{inputs.offer.level} · offer-letter breakup</h2>
+          </div>
+          <ExportBar result={result} paise={paise} />
         </div>
-        <ExportBar result={result} paise={paise} />
-      </div>
+      )}
 
       <ReconcileWarning result={result} inputs={inputs} />
 
@@ -164,12 +168,14 @@ export function StructurePanel({ result, inputs, tooltips, paise }: PanelProps) 
         <StructureTable result={result} tooltips={tooltips} paise={paise} />
       </div>
 
-      <div className="card p-3">
-        <Eyebrow>Over &amp; above</Eyebrow>
-        <div className="mt-1">
-          <OverAboveTable result={result} tooltips={tooltips} paise={paise} />
+      {!compact && (
+        <div className="card p-3">
+          <Eyebrow>Over &amp; above</Eyebrow>
+          <div className="mt-1">
+            <OverAboveTable result={result} tooltips={tooltips} paise={paise} />
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
