@@ -22,11 +22,50 @@ export interface CandidateItemized {
   variable: number;
 }
 
+// Offer-letter header metadata (does not affect the calculation).
+export interface OfferMeta {
+  name: string;
+  position: string;
+  location: string;
+  date: string; // ISO yyyy-mm-dd
+}
+
+// Manual add-ons (free amounts, no calculation) shown on the offer letter.
+export interface Addons {
+  retention12: number;
+  retention24: number;
+  retention36: number;
+  joining: number;
+  ltip12: number;
+  ltip24: number;
+  ltip36: number;
+  ltip48: number;
+}
+
+export const ZERO_ADDONS: Addons = {
+  retention12: 0, retention24: 0, retention36: 0, joining: 0,
+  ltip12: 0, ltip24: 0, ltip36: 0, ltip48: 0,
+};
+
+/** Add-on rows in display/export order, with labels. */
+export const ADDON_ROWS: [keyof Addons, string][] = [
+  ['retention12', 'Retention bonus — 12 months'],
+  ['retention24', 'Retention bonus — 24 months'],
+  ['retention36', 'Retention bonus — 36 months'],
+  ['joining', 'Joining bonus (in lieu of lost variable)'],
+  ['ltip12', 'LTIP — 12 months'],
+  ['ltip24', 'LTIP — 24 months'],
+  ['ltip36', 'LTIP — 36 months'],
+  ['ltip48', 'LTIP — 48 months'],
+];
+
 export interface FormState {
   candidate: CandidateItemized;
   offer: OfferParamInputs;
   structure: StructureInputs;
   eligibility: EligibilityInputs;
+  meta: OfferMeta;
+  addons: Addons;
 }
 
 export const ZERO_CANDIDATE: CandidateItemized = {
@@ -93,6 +132,8 @@ export function initialForm(level: LevelId, mpliPct: MpliPct): FormState {
       pf: DEFAULTS.pf,
       foodCouponsMonthly: DEFAULTS.foodCouponsMonthly,
     },
-    eligibility: { isPlant: false, transport: 'N', cea: 'NONE', cha: 'NONE', ber: 'N', lta: 'N' },
+    eligibility: { isPlant: false, isMetro: false, transport: 'N', cea: 'NONE', cha: 'NONE', ber: 'N', lta: 'N' },
+    meta: { name: '', position: '', location: '', date: new Date().toISOString().slice(0, 10) },
+    addons: { ...ZERO_ADDONS },
   };
 }

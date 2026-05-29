@@ -85,6 +85,32 @@ export function SelectField<T extends string | number>({
   );
 }
 
+interface TextFieldProps {
+  id: string;
+  label: string;
+  tooltip?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: 'text' | 'date';
+}
+
+export function TextField({ id, label, tooltip, value, onChange, placeholder, type = 'text' }: TextFieldProps) {
+  return (
+    <label className="flex flex-col gap-1" htmlFor={id}>
+      <FieldLabel label={label} tooltip={tooltip} />
+      <input
+        id={id}
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded border border-graphite-300 bg-page px-2 py-1.5 text-[14px] outline-none focus:border-primary"
+      />
+    </label>
+  );
+}
+
 interface ToggleFieldProps<T extends string | boolean> {
   label: string;
   tooltip?: string;

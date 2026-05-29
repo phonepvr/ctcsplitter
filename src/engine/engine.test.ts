@@ -9,7 +9,7 @@ const golden: Inputs = {
   candidate: { currentAnnualFixedWithoutGratuity: 3104004, currentAnnualVariable: 579180 },
   offer: { level: 'M-9', mpliPct: 12, finalOption: 2, manualOption4CTC: 15_000_000 },
   structure: { basicPct: 40, hraPct: 40, npsPct: 0, pf: 'Y', foodCouponsMonthly: 9600 },
-  eligibility: { isPlant: true, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
+  eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };
 
 const lineAnnual = (r: OfferResult, key: string): number =>
@@ -62,6 +62,8 @@ describe('computeOffer — golden case (M-9, +15%, option 2)', () => {
     expect(r.flags.transportOvershootAmount).toBe(19200);
     expect(r.flags.negativePersonalAllowance).toBe(false);
     expect(r.flags.componentMismatch).toBe(false);
+    expect(r.flags.basicCapExceeded).toBe(false);
+    expect(r.flags.hraCapExceeded).toBe(false);
     // the components really do overshoot the target by the transport amount
     expect(r.structure.componentFixedSum - r.structure.totalFixedTarget).toBeCloseTo(19200, 2);
   });
@@ -128,6 +130,21 @@ describe('computeOffer — edge cases', () => {
     const r = computeOffer({ ...golden, eligibility: { ...golden.eligibility, ber: 'Y', lta: 'Y' } }, bundledMaster);
     expect(lineAnnual(r, 'ber')).toBe(180000); // 15000 × 12
     expect(lineAnnual(r, 'lta')).toBeCloseTo(10000, 2); // (2500/3) × 12
+  });
+
+  it('flags Basic% and HRA% cap breaches (metro-aware)', () => {
+    const nonMetro = computeOffer(
+      { ...golden, structure: { ...golden.structure, basicPct: 50, hraPct: 60 }, eligibility: { ...golden.eligibility, isMetro: false } },
+      bundledMaster,
+    );
+    expect(nonMetro.flags.basicCapExceeded).toBe(true); // 50 > 40
+    expect(nonMetro.flags.hraCapExceeded).toBe(true); // 60 > 50 (non-metro)
+    const metro = computeOffer(
+      { ...golden, structure: { ...golden.structure, basicPct: 40, hraPct: 60 }, eligibility: { ...golden.eligibility, isMetro: true } },
+      bundledMaster,
+    );
+    expect(metro.flags.basicCapExceeded).toBe(false); // 40 is the cap, not above it
+    expect(metro.flags.hraCapExceeded).toBe(false); // 60 == metro cap, not above
   });
 
   it('suggests the correct MPLI band per level', () => {

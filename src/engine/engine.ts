@@ -6,7 +6,7 @@ import type {
 import { mround } from './rounding';
 import {
   INCREMENTS, PF_RATE, GRATUITY_RATE, TRANSPORT_ALLOWANCE_PM, WASHING_ALLOWANCE_PM,
-  CEA_PM, CHA_PM,
+  CEA_PM, CHA_PM, BASIC_PCT_CAP, HRA_METRO_CAP, HRA_NONMETRO_CAP,
 } from './constants';
 
 /** Thrown when the chosen level has no record in the (possibly user-loaded) master. */
@@ -160,6 +160,8 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
     negativePersonalAllowance: personalAllowance < 0,
     // Residual mismatch after removing the known transport quirk (tolerates float noise).
     componentMismatch: Math.abs(componentFixedSum - knownOvershoot - totalFixedTarget) > 1,
+    basicCapExceeded: structure.basicPct > BASIC_PCT_CAP,
+    hraCapExceeded: structure.hraPct > (eligibility.isMetro ? HRA_METRO_CAP : HRA_NONMETRO_CAP) * 100,
   };
 
   return { options, summary, structure: structureOut, overAndAbove, flags };

@@ -8,8 +8,10 @@ import {
 } from '../../data/data';
 import { INPUT_COPY } from '../../data/strings';
 import { formatINR } from '../../format/currency';
-import { type FormState, type CandidateItemized, deriveCandidate } from '../../state/form';
-import { NumberField, SelectField, ToggleField, ReadoutRow } from './fields';
+import {
+  type FormState, type CandidateItemized, type OfferMeta, type Addons, deriveCandidate,
+} from '../../state/form';
+import { NumberField, SelectField, ToggleField, TextField, ReadoutRow } from './fields';
 
 type SetForm = Dispatch<SetStateAction<FormState>>;
 
@@ -47,6 +49,10 @@ const patchers = (setForm: SetForm) => ({
     setForm((f) => ({ ...f, structure: { ...f.structure, ...patch } })),
   eligibility: (patch: Partial<FormState['eligibility']>) =>
     setForm((f) => ({ ...f, eligibility: { ...f.eligibility, ...patch } })),
+  meta: (patch: Partial<OfferMeta>) =>
+    setForm((f) => ({ ...f, meta: { ...f.meta, ...patch } })),
+  addons: (patch: Partial<Addons>) =>
+    setForm((f) => ({ ...f, addons: { ...f.addons, ...patch } })),
 });
 
 export function CandidateSection({ form, setForm }: Omit<SectionProps, 'master'>) {
@@ -123,11 +129,62 @@ export function EligibilitySection({ form, setForm }: Omit<SectionProps, 'master
   return (
     <div className="flex flex-col gap-3">
       <ToggleField<boolean> label={INPUT_COPY.isPlant.label} tooltip={INPUT_COPY.isPlant.tooltip} value={form.eligibility.isPlant} options={[{ value: true, label: 'Plant' }, { value: false, label: 'Non-plant' }]} onChange={(v) => set({ isPlant: v })} />
+      <ToggleField<boolean> label={INPUT_COPY.isMetro.label} tooltip={INPUT_COPY.isMetro.tooltip} value={form.eligibility.isMetro} options={[{ value: true, label: 'Metro' }, { value: false, label: 'Non-metro' }]} onChange={(v) => set({ isMetro: v })} />
       <ToggleField<YesNo> label={INPUT_COPY.transport.label} tooltip={INPUT_COPY.transport.tooltip} value={form.eligibility.transport} options={[{ value: 'Y', label: 'Yes' }, { value: 'N', label: 'No' }]} onChange={(v) => set({ transport: v })} />
       <SelectField<ChildCount> id="elig-cea" label={INPUT_COPY.cea.label} value={form.eligibility.cea} options={CHILD_OPTIONS} onChange={(raw) => set({ cea: raw as ChildCount })} />
       <SelectField<ChildCount> id="elig-cha" label={INPUT_COPY.cha.label} value={form.eligibility.cha} options={CHILD_OPTIONS} onChange={(raw) => set({ cha: raw as ChildCount })} />
       <ToggleField<YesNo> label={INPUT_COPY.ber.label} tooltip={INPUT_COPY.ber.tooltip} value={form.eligibility.ber} options={[{ value: 'Y', label: 'Yes' }, { value: 'N', label: 'No' }]} onChange={(v) => set({ ber: v })} />
       <ToggleField<YesNo> label={INPUT_COPY.lta.label} tooltip={INPUT_COPY.lta.tooltip} value={form.eligibility.lta} options={[{ value: 'Y', label: 'Yes' }, { value: 'N', label: 'No' }]} onChange={(v) => set({ lta: v })} />
+    </div>
+  );
+}
+
+export function MetaSection({ form, setForm }: Omit<SectionProps, 'master'>) {
+  const set = patchers(setForm).meta;
+  const m = form.meta;
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <TextField id="meta-name" label={INPUT_COPY.name.label} value={m.name} placeholder="e.g. A. Sharma" onChange={(v) => set({ name: v })} />
+      <TextField id="meta-position" label={INPUT_COPY.position.label} value={m.position} placeholder="e.g. Senior Manager" onChange={(v) => set({ position: v })} />
+      <TextField id="meta-location" label={INPUT_COPY.location.label} value={m.location} placeholder="e.g. Mumbai" onChange={(v) => set({ location: v })} />
+      <TextField id="meta-date" type="date" label={INPUT_COPY.offerDate.label} value={m.date} onChange={(v) => set({ date: v })} />
+    </div>
+  );
+}
+
+const RETENTION_FIELDS: { key: keyof Addons; label: string }[] = [
+  { key: 'retention12', label: '12 months' },
+  { key: 'retention24', label: '24 months' },
+  { key: 'retention36', label: '36 months' },
+];
+const LTIP_FIELDS: { key: keyof Addons; label: string }[] = [
+  { key: 'ltip12', label: '12 months' },
+  { key: 'ltip24', label: '24 months' },
+  { key: 'ltip36', label: '36 months' },
+  { key: 'ltip48', label: '48 months' },
+];
+
+export function AddonsSection({ form, setForm }: Omit<SectionProps, 'master'>) {
+  const set = patchers(setForm).addons;
+  const a = form.addons;
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="flex flex-col gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Retention bonus (on completion)</div>
+        {RETENTION_FIELDS.map((f) => (
+          <NumberField key={f.key} id={`add-${f.key}`} label={f.label} value={a[f.key]} step={1000} onChange={(v) => set({ [f.key]: v } as Partial<Addons>)} />
+        ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Joining bonus</div>
+        <NumberField id="add-joining" label="In lieu of lost variable" value={a.joining} step={1000} onChange={(v) => set({ joining: v })} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">LTIP (on completion)</div>
+        {LTIP_FIELDS.map((f) => (
+          <NumberField key={f.key} id={`add-${f.key}`} label={f.label} value={a[f.key]} step={1000} onChange={(v) => set({ [f.key]: v } as Partial<Addons>)} />
+        ))}
+      </div>
     </div>
   );
 }

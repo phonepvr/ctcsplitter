@@ -2,13 +2,14 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { computeOffer } from '../engine/engine';
 import { bundledMaster } from '../data/levelMaster';
 import { buildStructureTSV, buildStructureHTML, copyOfferToClipboard } from './clipboard';
+import { ZERO_ADDONS } from '../state/form';
 import type { Inputs } from '../engine/types';
 
 const golden: Inputs = {
   candidate: { currentAnnualFixedWithoutGratuity: 3104004, currentAnnualVariable: 579180 },
   offer: { level: 'M-9', mpliPct: 12, finalOption: 2, manualOption4CTC: 15_000_000 },
   structure: { basicPct: 40, hraPct: 40, npsPct: 0, pf: 'Y', foodCouponsMonthly: 9600 },
-  eligibility: { isPlant: true, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
+  eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };
 const result = computeOffer(golden, bundledMaster);
 
@@ -30,6 +31,25 @@ describe('buildStructureTSV', () => {
     expect(lines).toHaveLength(1 + result.structure.lines.length + 6);
     // tab-delimited, 4 columns
     expect(lines[1].split('\t')).toHaveLength(4);
+  });
+});
+
+describe('buildStructureTSV with header + add-ons', () => {
+  it('includes the offer header and only the non-zero add-ons', () => {
+    const tsv = buildStructureTSV(
+      result,
+      {},
+      {
+        meta: { name: 'A. Sharma', position: 'Sr Manager', location: 'Mumbai', date: '2026-05-29' },
+        addons: { ...ZERO_ADDONS, retention12: 500000, joining: 200000 },
+      },
+    );
+    expect(tsv).toContain('Offer details');
+    expect(tsv).toContain('A. Sharma');
+    expect(tsv).toContain('Bonuses & incentives');
+    expect(tsv).toContain('Retention bonus — 12 months');
+    expect(tsv).toContain('Joining bonus (in lieu of lost variable)');
+    expect(tsv).not.toContain('LTIP — 48 months'); // zero entries omitted
   });
 });
 

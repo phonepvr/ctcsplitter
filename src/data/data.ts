@@ -54,6 +54,6 @@ export function buildDefaultInputs(level: LevelId, mpliPct: MpliPct): Inputs {
       pf: DEFAULTS.pf,
       foodCouponsMonthly: DEFAULTS.foodCouponsMonthly,
     },
-    eligibility: { isPlant: false, transport: 'N', cea: 'NONE', cha: 'NONE', ber: 'N', lta: 'N' },
+    eligibility: { isPlant: false, isMetro: false, transport: 'N', cea: 'NONE', cha: 'NONE', ber: 'N', lta: 'N' },
   };
 }

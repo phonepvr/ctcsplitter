@@ -3,7 +3,7 @@ import type { Inputs, OfferResult, LevelMaster, FinalOption } from '../engine/ty
 import type { FormState } from '../state/form';
 import { Stepper, type StepDef } from './Stepper';
 import { Button, Eyebrow } from './common/ui';
-import { CandidateSection, OfferSection, StructureSection, EligibilitySection } from './inputs/sections';
+import { CandidateSection, OfferSection, StructureSection, EligibilitySection, MetaSection, AddonsSection } from './inputs/sections';
 import { ComparisonPanel } from './comparison/ComparisonPanel';
 import { StructurePanel } from './structure/StructurePanel';
 import { formatINR, formatPct } from '../format/currency';
@@ -79,7 +79,13 @@ export function Wizard({ form, setForm, master, inputs, result, tooltips, paise,
 
       {step === 1 && (
         <div>
-          <StepHead n={1} title="Candidate's current pay" intro="Enter the candidate's current monthly components. We total them and work out the annual fixed (without gratuity) and variable used to build the offer." />
+          <StepHead n={1} title="Candidate & current pay" intro="First, who the offer is for; then the candidate's current monthly components. We total them and work out the annual fixed (without gratuity) and variable used to build the offer." />
+          <div className="mb-5">
+            <Eyebrow>Offer details</Eyebrow>
+            <div className="mt-2">
+              <MetaSection form={form} setForm={setForm} />
+            </div>
+          </div>
           <CandidateSection form={form} setForm={setForm} />
         </div>
       )}
@@ -125,9 +131,14 @@ export function Wizard({ form, setForm, master, inputs, result, tooltips, paise,
 
       {step === 4 && (
         <div className="flex flex-col gap-4">
-          <StepHead n={4} title="Review & share" intro="Confirm the offer, then copy the structure straight into the letter or save it as a PDF." />
+          <StepHead n={4} title="Review & share" intro="Add any bonuses, confirm the offer, then copy the structure straight into the letter or save it as a PDF." />
           <Recap result={result} paise={paise} />
-          <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={paise} />
+          <div className="no-print card p-3">
+            <Eyebrow>Add-ons (optional)</Eyebrow>
+            <p className="mb-3 mt-1 text-[12px] text-muted">Retention, joining and LTIP amounts appear in the copied and printed letter.</p>
+            <AddonsSection form={form} setForm={setForm} />
+          </div>
+          <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={paise} meta={form.meta} addons={form.addons} />
         </div>
       )}
 

@@ -1,4 +1,6 @@
 import type { OfferResult } from '../engine/types';
+import type { OfferMeta, Addons } from '../state/form';
+import { ADDON_ROWS } from '../state/form';
 import { formatINR } from './currency';
 import { STRUCTURE_REMARKS } from '../data/strings';
 
@@ -6,33 +8,62 @@ export interface ClipboardOpts {
   paise?: boolean;
 }
 
+export interface OfferExtras {
+  meta?: OfferMeta;
+  addons?: Addons;
+}
+
 interface Row {
   cells: string[];
   bold?: boolean;
 }
 
-function structureRows(result: OfferResult, opts: ClipboardOpts): Row[] {
+function hasMeta(meta?: OfferMeta): meta is OfferMeta {
+  return !!meta && !!(meta.name || meta.position || meta.location || meta.date);
+}
+
+function rows(result: OfferResult, opts: ClipboardOpts, extras: OfferExtras): Row[] {
   const fmt = (n: number) => formatINR(n, { paise: opts.paise, symbol: false });
-  const rows: Row[] = [{ cells: ['Salary Component', 'Monthly (₹)', 'Annum (₹)', 'Remarks'], bold: true }];
-  for (const l of result.structure.lines) {
-    rows.push({
-      cells: [l.label, fmt(l.monthly), fmt(l.annual), STRUCTURE_REMARKS[l.key] ?? ''],
-      bold: l.isSubtotal,
-    });
+  const out: Row[] = [];
+
+  if (hasMeta(extras.meta)) {
+    const m = extras.meta;
+    out.push({ cells: ['Offer details', '', '', ''], bold: true });
+    if (m.name) out.push({ cells: ['Name', m.name, '', ''] });
+    if (m.position) out.push({ cells: ['Position', m.position, '', ''] });
+    if (m.location) out.push({ cells: ['Location', m.location, '', ''] });
+    if (m.date) out.push({ cells: ['Date', m.date, '', ''] });
   }
+
+  out.push({ cells: ['Salary Component', 'Monthly (₹)', 'Annum (₹)', 'Remarks'], bold: true });
+  for (const l of result.structure.lines) {
+    out.push({ cells: [l.label, fmt(l.monthly), fmt(l.annual), STRUCTURE_REMARKS[l.key] ?? ''], bold: l.isSubtotal });
+  }
+
   const oa = result.overAndAbove;
-  rows.push({ cells: ['Over & above (p.a.)', '', '', ''], bold: true });
-  rows.push({ cells: ['Mediclaim', '', fmt(oa.mediclaimAnnual), 'Self, spouse + first two children'] });
-  rows.push({ cells: ['Group Personal Accident', '', fmt(oa.groupPersonalAccidentAnnual), 'Self'] });
-  rows.push({ cells: ['Term Insurance', '', fmt(oa.termInsuranceAnnual), 'Self'] });
-  rows.push({ cells: ['Mobile Reimbursement', fmt(oa.mobileReimbMonthly), '', 'Per month'] });
-  rows.push({ cells: ['Gratuity', '', fmt(oa.gratuityAnnual), '4.81% of annual Basic'] });
-  return rows;
+  out.push({ cells: ['Over & above (p.a.)', '', '', ''], bold: true });
+  out.push({ cells: ['Mediclaim', '', fmt(oa.mediclaimAnnual), 'Self, spouse + first two children'] });
+  out.push({ cells: ['Group Personal Accident', '', fmt(oa.groupPersonalAccidentAnnual), 'Self'] });
+  out.push({ cells: ['Term Insurance', '', fmt(oa.termInsuranceAnnual), 'Self'] });
+  out.push({ cells: ['Mobile Reimbursement', fmt(oa.mobileReimbMonthly), '', 'Per month'] });
+  out.push({ cells: ['Gratuity', '', fmt(oa.gratuityAnnual), '4.81% of annual Basic'] });
+
+  if (extras.addons) {
+    const addons = extras.addons;
+    const nonZero = ADDON_ROWS.filter(([k]) => addons[k] > 0);
+    if (nonZero.length > 0) {
+      out.push({ cells: ['Bonuses & incentives', '', '', ''], bold: true });
+      for (const [k, label] of nonZero) {
+        out.push({ cells: [label, '', fmt(addons[k]), ''] });
+      }
+    }
+  }
+  return out;
 }
 
 /** Tab-separated representation — pastes cleanly into Excel or a plain editor. */
-export function buildStructureTSV(result: OfferResult, opts: ClipboardOpts = {}): string {
-  return structureRows(result, opts)
+export function buildStructureTSV(result: OfferResult, opts: ClipboardOpts = {}, extras: OfferExtras = {}): string {
+  return rows(result, opts, extras)
     .map((r) => r.cells.join('\t'))
     .join('\n');
 }
@@ -41,9 +72,8 @@ const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** Minimal-styled HTML table — pastes as a real table into Word / Outlook. */
-export function buildStructureHTML(result: OfferResult, opts: ClipboardOpts = {}): string {
-  const rows = structureRows(result, opts);
-  const body = rows
+export function buildStructureHTML(result: OfferResult, opts: ClipboardOpts = {}, extras: OfferExtras = {}): string {
+  const body = rows(result, opts, extras)
     .map((r) => {
       const tag = r.bold ? 'th' : 'td';
       const weight = r.bold ? 'font-weight:600;background:#F6F7F9;' : '';
@@ -75,18 +105,19 @@ async function writeText(text: string): Promise<void> {
   document.body.removeChild(ta);
 }
 
-/** Copy the structure table to the clipboard as rich HTML (+plain TSV) or plain TSV. */
+/** Copy the structure (+ optional header/add-ons) to the clipboard. */
 export async function copyOfferToClipboard(
   result: OfferResult,
   fmt: 'rich' | 'tsv',
   opts: ClipboardOpts = {},
+  extras: OfferExtras = {},
 ): Promise<void> {
-  const tsv = buildStructureTSV(result, opts);
+  const tsv = buildStructureTSV(result, opts, extras);
   if (fmt === 'tsv') {
     await writeText(tsv);
     return;
   }
-  const html = buildStructureHTML(result, opts);
+  const html = buildStructureHTML(result, opts, extras);
   if (
     typeof ClipboardItem !== 'undefined' &&
     navigator.clipboard &&

@@ -19,7 +19,7 @@ const form: FormState = {
     gratuity: 0, variable: 579180 / 12,
   },
   offer: { level: 'M-9', mpliPct: 12, finalOption: 2, manualOption4CTC: 15_000_000 },
-  eligibility: { isPlant: true, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
+  eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };
 // Put the whole fixed-without-gratuity into "basic" for the smoke test.
 form.candidate.basic = 3104004 / 12;
@@ -38,9 +38,16 @@ describe('UI smoke render (golden numbers)', () => {
     expect(html).toContain('Option 2');
   });
 
-  it('renders the structure table with the golden breakup', () => {
+  it('renders the structure table with the golden breakup, header and add-ons', () => {
     const html = renderToStaticMarkup(
-      <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={false} />,
+      <StructurePanel
+        result={result}
+        inputs={inputs}
+        tooltips={tooltips}
+        paise={false}
+        meta={{ name: 'A. Sharma', position: 'Sr Manager', location: 'Mumbai', date: '2026-05-29' }}
+        addons={{ retention12: 500000, retention24: 0, retention36: 0, joining: 0, ltip12: 0, ltip24: 0, ltip36: 0, ltip48: 0 }}
+      />,
     );
     expect(html).toContain('Basic Pay');
     expect(html).toContain('16,94,400'); // basic annual
@@ -50,6 +57,9 @@ describe('UI smoke render (golden numbers)', () => {
     expect(html).toContain('Mediclaim');
     // transport overshoot warning is shown (transport = Y)
     expect(html).toContain('over-and-above');
+    expect(html).toContain('A. Sharma'); // meta header (A1)
+    expect(html).toContain('Bonuses'); // add-ons summary (A2)
+    expect(html).toContain('5,00,000'); // retention bonus amount
   });
 });
 

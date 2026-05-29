@@ -50,6 +50,7 @@ export interface StructureInputs {
 // ----- Group 4: eligibility flags -----
 export interface EligibilityInputs {
   isPlant: boolean; // washing allowance only at plant locations
+  isMetro: boolean; // metro city -> HRA cap 60% of Basic (else 50%); advisory only
   transport: YesNo; // handicap-only transport allowance, 1600 p.m.
   cea: ChildCount; // Children Education Allowance
   cha: ChildCount; // Children Hostel Allowance
@@ -132,6 +133,8 @@ export interface OfferFlags {
   transportOvershootAmount: number; // annual transport in the overshoot (e.g. 19200)
   negativePersonalAllowance: boolean; // plug < 0 (Basic%/HRA% too high for CTC)
   componentMismatch: boolean; // residual mismatch beyond the known transport quirk
+  basicCapExceeded: boolean; // Basic% above the 40% policy cap
+  hraCapExceeded: boolean; // HRA% above the metro (60%) / non-metro (50%) cap
 }
 
 export interface OfferResult {

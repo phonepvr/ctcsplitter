@@ -91,4 +91,9 @@ export const INPUT_COPY: Record<string, FieldCopy> = {
   cha: { label: 'Children Hostel Allowance' },
   ber: { label: 'Business Expense Reimbursement', tooltip: 'Adds the level’s BER (per month × 12) when Yes.' },
   lta: { label: 'LTA reimbursement', tooltip: 'Adds the level’s LTA (per month × 12) when Yes.' },
+  isMetro: { label: 'City type', tooltip: 'Metro raises the HRA cap to 60% of Basic (else 50%). Advisory only — it does not change the calculation.' },
+  name: { label: 'Candidate name' },
+  position: { label: 'Position' },
+  location: { label: 'Location' },
+  offerDate: { label: 'Offer date' },
 };

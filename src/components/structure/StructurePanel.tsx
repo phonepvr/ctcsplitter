@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import type { OfferResult, Inputs } from '../../engine/types';
+import type { OfferMeta, Addons } from '../../state/form';
+import { ADDON_ROWS } from '../../state/form';
 import { formatINR } from '../../format/currency';
 import { STRUCTURE_REMARKS } from '../../data/strings';
 import { copyOfferToClipboard } from '../../format/clipboard';
-import { BASIC_PCT_CAP } from '../../engine/constants';
 import { InfoTooltip } from '../common/InfoTooltip';
 import { Button, Eyebrow } from '../common/ui';
 import { cn } from '../common/cn';
@@ -13,8 +14,10 @@ interface PanelProps {
   inputs: Inputs;
   tooltips: Record<string, string>;
   paise: boolean;
-  /** compact = table + warnings only (no heading/export/over-above). */
+  /** compact = table + warnings only (no header/export/over-above/add-ons). */
   compact?: boolean;
+  meta?: OfferMeta;
+  addons?: Addons;
 }
 
 function Alert({ tone, children }: { tone: 'red' | 'ember'; children: ReactNode }) {
@@ -39,8 +42,15 @@ function ReconcileWarning({ result, inputs }: { result: OfferResult; inputs: Inp
       text: 'Personal Allowance is negative — Basic % and/or HRA % are too high for this CTC. Lower them so the fixed components fit within Total Fixed Salary.',
     });
   }
-  if (inputs.structure.basicPct > BASIC_PCT_CAP) {
+  if (flags.basicCapExceeded) {
     items.push({ tone: 'ember', text: `Basic is ${inputs.structure.basicPct}% of CTC — above the 15–40% policy cap.` });
+  }
+  if (flags.hraCapExceeded) {
+    const cap = inputs.eligibility.isMetro ? 60 : 50;
+    items.push({
+      tone: 'ember',
+      text: `HRA is ${inputs.structure.hraPct}% of Basic — above the ${cap}% cap for ${inputs.eligibility.isMetro ? 'metro' : 'non-metro'} locations.`,
+    });
   }
   if (flags.transportOvershoot) {
     items.push({
@@ -57,6 +67,28 @@ function ReconcileWarning({ result, inputs }: { result: OfferResult; inputs: Inp
       {items.map((it, i) => (
         <Alert key={i} tone={it.tone}>{it.text}</Alert>
       ))}
+    </div>
+  );
+}
+
+function MetaHeader({ meta }: { meta?: OfferMeta }) {
+  if (!meta || !(meta.name || meta.position || meta.location || meta.date)) return null;
+  const items = ([
+    ['Name', meta.name],
+    ['Position', meta.position],
+    ['Location', meta.location],
+    ['Date', meta.date],
+  ] as [string, string][]).filter(([, v]) => v);
+  return (
+    <div className="card p-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+        {items.map(([k, v]) => (
+          <div key={k}>
+            <div className="eyebrow">{k}</div>
+            <div className="text-[14px] text-ink">{v}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -122,13 +154,41 @@ function OverAboveTable({ result, tooltips, paise }: { result: OfferResult; tool
   );
 }
 
-function ExportBar({ result, paise }: { result: OfferResult; paise: boolean }) {
+function AddonsSummary({ addons, paise }: { addons?: Addons; paise: boolean }) {
+  if (!addons) return null;
+  const rows = ADDON_ROWS.filter(([k]) => addons[k] > 0);
+  if (rows.length === 0) return null;
+  return (
+    <div className="card p-3">
+      <Eyebrow>Bonuses &amp; incentives</Eyebrow>
+      <table className="mt-1 w-full border-collapse text-[13px]">
+        <tbody>
+          {rows.map(([k, label]) => (
+            <tr key={k} className="border-b border-graphite-100">
+              <td className="py-1.5 pr-2">{label}</td>
+              <td className="tnum px-2 text-right">{formatINR(addons[k], { paise })}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ExportBar({
+  result, paise, meta, addons,
+}: {
+  result: OfferResult;
+  paise: boolean;
+  meta?: OfferMeta;
+  addons?: Addons;
+}) {
   const [copied, setCopied] = useState<'' | 'rich' | 'tsv'>('');
   const [err, setErr] = useState(false);
   const copy = async (fmt: 'rich' | 'tsv') => {
     setErr(false);
     try {
-      await copyOfferToClipboard(result, fmt, { paise });
+      await copyOfferToClipboard(result, fmt, { paise }, { meta, addons });
       setCopied(fmt);
       setTimeout(() => setCopied(''), 1500);
     } catch {
@@ -149,16 +209,18 @@ function ExportBar({ result, paise }: { result: OfferResult; paise: boolean }) {
   );
 }
 
-export function StructurePanel({ result, inputs, tooltips, paise, compact = false }: PanelProps) {
+export function StructurePanel({ result, inputs, tooltips, paise, compact = false, meta, addons }: PanelProps) {
   return (
     <section className="flex flex-col gap-4">
+      {!compact && <MetaHeader meta={meta} />}
+
       {!compact && (
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <Eyebrow>Compensation structure</Eyebrow>
             <h2 className="text-h3 text-ink">{inputs.offer.level} · offer-letter breakup</h2>
           </div>
-          <ExportBar result={result} paise={paise} />
+          <ExportBar result={result} paise={paise} meta={meta} addons={addons} />
         </div>
       )}
 
@@ -169,12 +231,15 @@ export function StructurePanel({ result, inputs, tooltips, paise, compact = fals
       </div>
 
       {!compact && (
-        <div className="card p-3">
-          <Eyebrow>Over &amp; above</Eyebrow>
-          <div className="mt-1">
-            <OverAboveTable result={result} tooltips={tooltips} paise={paise} />
+        <>
+          <div className="card p-3">
+            <Eyebrow>Over &amp; above</Eyebrow>
+            <div className="mt-1">
+              <OverAboveTable result={result} tooltips={tooltips} paise={paise} />
+            </div>
           </div>
-        </div>
+          <AddonsSummary addons={addons} paise={paise} />
+        </>
       )}
     </section>
   );
