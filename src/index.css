@@ -1,0 +1,59 @@
+/* Self-hosted fonts (OFL) bundled via @fontsource — no external CDN, no
+   referrer leak. Brand: Fraunces (display), Inter Tight (UI), JetBrains Mono. */
+@import '@fontsource/fraunces/400.css';
+@import '@fontsource/inter-tight/400.css';
+@import '@fontsource/inter-tight/600.css';
+@import '@fontsource/jetbrains-mono/400.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color: #0e1219; /* ink */
+    background: #ffffff; /* page */
+  }
+  body {
+    @apply text-body;
+    font-family: 'Inter Tight', system-ui, sans-serif;
+  }
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+  }
+  :focus-visible {
+    outline: 2px solid #b81f1f;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-eyebrow uppercase text-primary;
+  }
+  .card {
+    @apply rounded border border-hairline bg-page;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Print: show only the structure output, full width, black-on-white. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-full {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: 1 / -1 !important;
+  }
+  body {
+    background: #fff;
+  }
+}
