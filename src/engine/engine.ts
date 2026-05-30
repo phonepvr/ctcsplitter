@@ -1,12 +1,12 @@
 import type {
   Inputs, OfferResult, OptionResult, OfferSummary, CompStructure, OverAndAbove,
   OfferFlags, StructureLine, StructureGroup, LevelMaster, LevelRecord, FinalOption,
-  MpliPct, LevelId,
+  LevelId, BandConfig,
 } from './types';
 import { mround } from './rounding';
 import {
   INCREMENTS, PF_RATE, GRATUITY_RATE, TRANSPORT_ALLOWANCE_PM, WASHING_ALLOWANCE_PM,
-  CEA_PM, CHA_PM, BASIC_PCT_CAP, HRA_METRO_CAP, HRA_NONMETRO_CAP,
+  CEA_PM, CHA_PM, BASIC_PCT_CAP, HRA_METRO_CAP, HRA_NONMETRO_CAP, BAND_CONFIGS, LEVEL_BAND,
 } from './constants';
 
 /** Thrown when the chosen level has no record in the (possibly user-loaded) master. */
@@ -23,22 +23,24 @@ function getLevel(master: LevelMaster, level: LevelId): LevelRecord {
   return rec;
 }
 
-/** Suggested MPLI% for a level — drives the UI default; the engine uses the explicit input. */
-export function defaultMpliForLevel(master: LevelMaster, level: LevelId): MpliPct | undefined {
+/** Suggested variable % for a level — drives the UI default; the engine uses the input. */
+export function defaultMpliForLevel(master: LevelMaster, level: LevelId): number | undefined {
   return master.mpliBands[level];
+}
+
+/** Band rules for a level (falls back to the level's record band). */
+export function bandForLevel(level: LevelId, record?: LevelRecord): BandConfig {
+  return BAND_CONFIGS[record?.band ?? LEVEL_BAND[level]];
 }
 
 const growth = (num: number, den: number): number | null => (den === 0 ? null : num / den - 1);
 const ratio = (num: number, den: number): number => (den === 0 ? 0 : num / den);
 
-/**
- * The single pure entry point. Takes typed Inputs and an injected LevelMaster,
- * returns a fully-derived OfferResult. No I/O, no DOM, no globals.
- */
 export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
   const { candidate, offer, structure, eligibility } = inputs;
   const level = getLevel(master, offer.level);
-  const mpliFrac = offer.mpliPct / 100;
+  const band = bandForLevel(offer.level, level);
+  const vfrac = offer.variablePct / 100;
 
   // ---------- Stage A — four offer options ----------
   const currentCTC =
@@ -52,28 +54,40 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
       totalCTC = offer.manualOption4CTC;
     } else {
       incrementPct = INCREMENTS[opt - 1];
-      totalCTC = mround(currentCTC * (1 + incrementPct));
+      totalCTC = mround(currentCTC * (1 + incrementPct), band.ctcRound);
     }
-    const mpli = mround(totalCTC * mpliFrac);
-    return { option: opt, incrementPct, totalCTC, mpli, fixed: totalCTC - mpli };
+    let fixed: number;
+    let variable: number;
+    if (band.variableOfFixed) {
+      // M2-M4: APB is a % of Fixed -> Fixed = CTC / (1 + APB%), variable = remainder.
+      fixed = mround(totalCTC / (1 + vfrac), band.fixedRound);
+      variable = totalCTC - fixed;
+    } else {
+      // M5-M11: MPLI is a % of CTC.
+      variable = mround(totalCTC * vfrac, band.ctcRound);
+      fixed = totalCTC - variable;
+    }
+    return { option: opt, incrementPct, totalCTC, mpli: variable, fixed };
   });
 
-  // ---------- Stage B — chosen option ----------
-  // Consistent index-based selection. This is the deliberate fix for the Excel
-  // bug where the option-3 branch tested $D$14 (blank) instead of $D$15 and
-  // returned 0; here option f always yields option f's Fixed/MPLI/CTC.
+  // ---------- Stage B — chosen option (consistent index = the $D$14 bug fix) ----------
   const chosen = options[offer.finalOption - 1];
+
+  const varRatio = (variable: number, totalCTC: number, fixed: number): number =>
+    ratio(variable, band.ratioOfFixed ? fixed : totalCTC);
 
   const summary: OfferSummary = {
     finalOption: offer.finalOption,
     currentCTC,
     currentFixed: candidate.currentAnnualFixedWithoutGratuity,
     currentVariable: candidate.currentAnnualVariable,
-    currentVarToTotal: ratio(candidate.currentAnnualVariable, currentCTC),
+    currentVarRatio: varRatio(candidate.currentAnnualVariable, currentCTC, candidate.currentAnnualFixedWithoutGratuity),
     offerCTC: chosen.totalCTC,
     offerFixed: chosen.fixed,
     offerMPLI: chosen.mpli,
-    offerVarToTotal: ratio(chosen.mpli, chosen.totalCTC),
+    offerVarRatio: varRatio(chosen.mpli, chosen.totalCTC, chosen.fixed),
+    carAllowance: offer.carAllowance,
+    totalRemuneration: chosen.totalCTC + offer.carAllowance,
     pctIncFixed: growth(chosen.fixed, candidate.currentAnnualFixedWithoutGratuity),
     pctIncMPLI: growth(chosen.mpli, candidate.currentAnnualVariable),
     pctIncCTC: growth(chosen.totalCTC, currentCTC),
@@ -101,8 +115,7 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
   const bPlusC = totalReimbB + totalRetiralsC;
 
   // Personal Allowance = balancing plug. Transport is intentionally NOT subtracted
-  // here (faithful to the Excel), so with transport=Y the component sum overshoots
-  // the target by exactly the annual transport — surfaced via flags.transportOvershoot.
+  // (faithful to the Excel), so with transport=Y the components overshoot the target.
   const personalAllowance =
     totalFixedTarget - bPlusC - basicAnnual - hraAnnual -
     foodCouponAnnual - washingAnnual - ceaAnnual - chaAnnual;
@@ -134,9 +147,13 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
     mk('totalRetiralsC', 'Total Retirals C', totalRetiralsC, 'C', true),
     mk('bPlusC', 'B + C (Reimbursements + Retirals)', bPlusC, 'BC', true),
     mk('totalFixed', 'Total Fixed Salary (A + B + C)', totalFixedTarget, 'TOTAL', true),
-    mk('mpli', 'MPLI (Monthly Performance Linked Incentive)', chosen.mpli, 'MPLI'),
+    mk('mpli', band.variableLineLabel, chosen.mpli, 'MPLI'),
     mk('grandTotal', 'Grand Total (Annual Target CTC)', grandTotalCTC, 'TOTAL', true),
   ];
+  if (band.hasCarAllowance) {
+    lines.push(mk('carAllowance', 'Car Allowance', offer.carAllowance, 'EXTRA'));
+    lines.push(mk('totalRemuneration', 'Total Remuneration', grandTotalCTC + offer.carAllowance, 'TOTAL', true));
+  }
 
   const structureOut: CompStructure = {
     lines, totalA, totalReimbB, totalRetiralsC, bPlusC,
@@ -148,7 +165,8 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
     mediclaimAnnual: level.hiPa,
     groupPersonalAccidentAnnual: level.gpaPa,
     termInsuranceAnnual: level.tlPa,
-    mobileReimbMonthly: level.mbrPm,
+    mobileReimb: band.mobileAnnual ? level.mobileReimbPa ?? 0 : level.mbrPm,
+    mobileReimbIsAnnual: band.mobileAnnual,
     gratuityAnnual: basicAnnual * GRATUITY_RATE,
   };
 
@@ -158,11 +176,10 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
     transportOvershoot: eligibility.transport === 'Y',
     transportOvershootAmount: knownOvershoot,
     negativePersonalAllowance: personalAllowance < 0,
-    // Residual mismatch after removing the known transport quirk (tolerates float noise).
     componentMismatch: Math.abs(componentFixedSum - knownOvershoot - totalFixedTarget) > 1,
     basicCapExceeded: structure.basicPct > BASIC_PCT_CAP,
     hraCapExceeded: structure.hraPct > (eligibility.isMetro ? HRA_METRO_CAP : HRA_NONMETRO_CAP) * 100,
   };
 
-  return { options, summary, structure: structureOut, overAndAbove, flags };
+  return { band, options, summary, structure: structureOut, overAndAbove, flags };
 }

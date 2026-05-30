@@ -126,7 +126,7 @@ function OverAboveTable({ result, tooltips, paise }: { result: OfferResult; tool
     { key: 'oa.mediclaim', label: 'Mediclaim', value: `${money(oa.mediclaimAnnual)} p.a.`, remark: 'Self, spouse + first two children' },
     { key: 'oa.gpa', label: 'Group Personal Accident', value: `${money(oa.groupPersonalAccidentAnnual)} p.a.`, remark: 'Self' },
     { key: 'oa.term', label: 'Term Insurance', value: `${money(oa.termInsuranceAnnual)} p.a.`, remark: 'Self' },
-    { key: 'oa.mobile', label: 'Mobile Reimbursement', value: `${money(oa.mobileReimbMonthly)} p.m.`, remark: 'Per month' },
+    { key: 'oa.mobile', label: 'Mobile Reimbursement', value: `${money(oa.mobileReimb)} ${oa.mobileReimbIsAnnual ? 'p.a.' : 'p.m.'}`, remark: oa.mobileReimbIsAnnual ? 'Per year' : 'Per month' },
     { key: 'oa.gratuity', label: 'Gratuity', value: `${formatINR(oa.gratuityAnnual, { paise: true })} p.a.`, remark: 'After 5 years of service' },
   ];
   return (

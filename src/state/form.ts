@@ -1,5 +1,5 @@
 import type {
-  Inputs, OfferParamInputs, StructureInputs, EligibilityInputs, LevelId, MpliPct,
+  Inputs, OfferParamInputs, StructureInputs, EligibilityInputs, LevelId,
 } from '../engine/types';
 import { DEFAULTS } from '../data/data';
 
@@ -141,10 +141,10 @@ export function toInputs(form: FormState): Inputs {
   };
 }
 
-export function initialForm(level: LevelId, mpliPct: MpliPct): FormState {
+export function initialForm(level: LevelId, variablePct: number): FormState {
   return {
     candidate: { ...ZERO_CANDIDATE },
-    offer: { level, mpliPct, finalOption: 2, manualOption4CTC: DEFAULTS.manualOption4CTC },
+    offer: { level, variablePct, finalOption: 2, manualOption4CTC: DEFAULTS.manualOption4CTC, carAllowance: DEFAULTS.carAllowance },
     structure: {
       basicPct: DEFAULTS.basicPct,
       hraPct: DEFAULTS.hraPct,

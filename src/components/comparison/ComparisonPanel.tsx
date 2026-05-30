@@ -12,13 +12,14 @@ interface PanelProps {
 }
 
 function OptionCard({
-  opt, isFinal, paise, tooltips, onSelect,
+  opt, isFinal, paise, tooltips, onSelect, varLabel,
 }: {
   opt: OptionResult;
   isFinal: boolean;
   paise: boolean;
   tooltips: Record<string, string>;
   onSelect: (o: FinalOption) => void;
+  varLabel: string;
 }) {
   const tag = opt.incrementPct === null ? 'Manual' : `+${Math.round(opt.incrementPct * 100)}%`;
   return (
@@ -54,7 +55,7 @@ function OptionCard({
       </div>
       <div className="flex justify-between text-[13px]">
         <span className="flex items-center text-muted">
-          MPLI<InfoTooltip text={tooltips['option.mpli']} align="right" />
+          {varLabel}<InfoTooltip text={tooltips['option.mpli']} align="right" />
         </span>
         <span className="tnum text-graphite-800">{formatINR(opt.mpli, { paise })}</span>
       </div>
@@ -86,6 +87,8 @@ function SummaryStat({
 
 export function ComparisonPanel({ result, tooltips, paise, onSelectOption }: PanelProps) {
   const { summary, options } = result;
+  const v = result.band.variableShortLabel;
+  const ratioLabel = result.band.ratioOfFixed ? 'Var : Fixed' : 'Var : total';
   return (
     <section className="flex flex-col gap-4">
       <div>
@@ -105,6 +108,7 @@ export function ComparisonPanel({ result, tooltips, paise, onSelectOption }: Pan
             paise={paise}
             tooltips={tooltips}
             onSelect={onSelectOption}
+            varLabel={v}
           />
         ))}
       </div>
@@ -113,10 +117,13 @@ export function ComparisonPanel({ result, tooltips, paise, onSelectOption }: Pan
         <Eyebrow>Selected offer · summary</Eyebrow>
         <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
           <SummaryStat label="Offer fixed" tip={tooltips['summary.pctIncFixed']} value={formatINR(summary.offerFixed, { paise })} delta={summary.pctIncFixed} />
-          <SummaryStat label="Offer MPLI" tip={tooltips['summary.offerMPLI']} value={formatINR(summary.offerMPLI, { paise })} delta={summary.pctIncMPLI} />
+          <SummaryStat label={`Offer ${v}`} tip={tooltips['summary.offerMPLI']} value={formatINR(summary.offerMPLI, { paise })} delta={summary.pctIncMPLI} />
           <SummaryStat label="Offer total CTC" tip={tooltips['summary.offerCTC']} value={formatINR(summary.offerCTC, { paise })} delta={summary.pctIncCTC} />
-          <SummaryStat label="Var : total — offer" tip={tooltips['summary.varToTotal']} value={formatPct(summary.offerVarToTotal)} />
-          <SummaryStat label="Var : total — current" tip={tooltips['summary.varToTotal']} value={formatPct(summary.currentVarToTotal)} />
+          {result.band.hasCarAllowance && summary.carAllowance > 0 && (
+            <SummaryStat label="Total remuneration" tip={tooltips['totalRemuneration']} value={formatINR(summary.totalRemuneration, { paise })} />
+          )}
+          <SummaryStat label={`${ratioLabel} — offer`} tip={tooltips['summary.varToTotal']} value={formatPct(summary.offerVarRatio)} />
+          <SummaryStat label={`${ratioLabel} — current`} tip={tooltips['summary.varToTotal']} value={formatPct(summary.currentVarRatio)} />
         </div>
       </div>
     </section>

@@ -1,15 +1,19 @@
 {
-  "_note": "CONFIDENTIAL — internal compensation policy (M-5..M-11). This is the file a user loads into the deployed calculator. Keep it OFF any public surface.",
+  "_note": "CONFIDENTIAL — internal compensation policy (M-2..M-11). This is the file a user loads into the deployed calculator. Keep it OFF any public surface. M2-M4 use APB (% of Fixed); M5-M11 use MPLI (% of CTC).",
   "levels": {
-    "M-5": { "berPm": 35000, "transportPm": 1600, "ltaPm": 3750, "variablePct": 0.20, "mbrPm": 600, "mhrLabel": "Smartphone", "hiPa": 800000, "tlPa": 15000000, "vpAmt": 58333.33, "gpaPa": 15000000 },
-    "M-6": { "berPm": 35000, "transportPm": 1600, "ltaPm": 2500, "variablePct": 0.20, "mbrPm": 600, "mhrLabel": "Smartphone", "hiPa": 600000, "tlPa": 7500000, "vpAmt": 58333.33, "gpaPa": 10000000 },
-    "M-7": { "berPm": 25000, "transportPm": 1600, "ltaPm": 1666.6666666666667, "variablePct": 0.20, "mbrPm": 600, "mhrLabel": "Smartphone", "hiPa": 600000, "tlPa": 7500000, "vpAmt": 58333.33, "gpaPa": 10000000 },
-    "M-8": { "berPm": 20000, "transportPm": 1600, "ltaPm": 1250, "variablePct": 0.15, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 5000000, "vpAmt": 43750, "gpaPa": 5000000 },
-    "M-9": { "berPm": 15000, "transportPm": 1600, "ltaPm": 833.3333333333334, "variablePct": 0.12, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 5000000, "vpAmt": 35000, "gpaPa": 5000000 },
-    "M-10": { "berPm": 12000, "transportPm": 1600, "ltaPm": 625, "variablePct": 0.12, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 2500000, "vpAmt": 35000, "gpaPa": 5000000 },
-    "M-11": { "berPm": 12000, "transportPm": 1600, "ltaPm": 625, "variablePct": 0.12, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 2500000, "vpAmt": 35000, "gpaPa": 5000000 }
+    "M-2": { "band": "M2-M4", "berPm": 60000, "transportPm": 1600, "ltaPm": 7500, "variablePct": 0.20, "mbrPm": 750, "mobileReimbPa": 9000, "mhrLabel": "Smartphone", "hiPa": 1000000, "tlPa": 20000000, "vpAmt": 0, "gpaPa": 20000000 },
+    "M-3": { "band": "M2-M4", "berPm": 45000, "transportPm": 1600, "ltaPm": 6250, "variablePct": 0.20, "mbrPm": 750, "mobileReimbPa": 9000, "mhrLabel": "Smartphone", "hiPa": 800000, "tlPa": 15000000, "vpAmt": 0, "gpaPa": 15000000 },
+    "M-4": { "band": "M2-M4", "berPm": 45000, "transportPm": 1600, "ltaPm": 5000, "variablePct": 0.20, "mbrPm": 750, "mobileReimbPa": 9000, "mhrLabel": "Smartphone", "hiPa": 800000, "tlPa": 15000000, "vpAmt": 0, "gpaPa": 15000000 },
+    "M-5": { "band": "M5-M11", "berPm": 35000, "transportPm": 1600, "ltaPm": 3750, "variablePct": 0.20, "mbrPm": 600, "mhrLabel": "Smartphone", "hiPa": 800000, "tlPa": 15000000, "vpAmt": 58333.33, "gpaPa": 15000000 },
+    "M-6": { "band": "M5-M11", "berPm": 35000, "transportPm": 1600, "ltaPm": 2500, "variablePct": 0.20, "mbrPm": 600, "mhrLabel": "Smartphone", "hiPa": 600000, "tlPa": 7500000, "vpAmt": 58333.33, "gpaPa": 10000000 },
+    "M-7": { "band": "M5-M11", "berPm": 25000, "transportPm": 1600, "ltaPm": 1666.6666666666667, "variablePct": 0.20, "mbrPm": 600, "mhrLabel": "Smartphone", "hiPa": 600000, "tlPa": 7500000, "vpAmt": 58333.33, "gpaPa": 10000000 },
+    "M-8": { "band": "M5-M11", "berPm": 20000, "transportPm": 1600, "ltaPm": 1250, "variablePct": 0.15, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 5000000, "vpAmt": 43750, "gpaPa": 5000000 },
+    "M-9": { "band": "M5-M11", "berPm": 15000, "transportPm": 1600, "ltaPm": 833.3333333333334, "variablePct": 0.12, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 5000000, "vpAmt": 35000, "gpaPa": 5000000 },
+    "M-10": { "band": "M5-M11", "berPm": 12000, "transportPm": 1600, "ltaPm": 625, "variablePct": 0.12, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 2500000, "vpAmt": 35000, "gpaPa": 5000000 },
+    "M-11": { "band": "M5-M11", "berPm": 12000, "transportPm": 1600, "ltaPm": 625, "variablePct": 0.12, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 2500000, "vpAmt": 35000, "gpaPa": 5000000 }
   },
   "mpliBands": {
+    "M-2": 20, "M-3": 20, "M-4": 20,
     "M-5": 20, "M-6": 20, "M-7": 20, "M-8": 15, "M-9": 12, "M-10": 12, "M-11": 12
   }
 }

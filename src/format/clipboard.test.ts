@@ -7,7 +7,7 @@ import type { Inputs } from '../engine/types';
 
 const golden: Inputs = {
   candidate: { currentAnnualFixedWithoutGratuity: 3104004, currentAnnualVariable: 579180 },
-  offer: { level: 'M-9', mpliPct: 12, finalOption: 2, manualOption4CTC: 15_000_000 },
+  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4CTC: 15_000_000, carAllowance: 0 },
   structure: { basicPct: 40, hraPct: 40, npsPct: 0, pf: 'Y', foodCouponsMonthly: 9600 },
   eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };

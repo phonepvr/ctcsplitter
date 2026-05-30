@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type {
-  LevelId, MpliPct, BasicPct, HraPct, NpsPct, YesNo, ChildCount, FinalOption, LevelMaster,
+  LevelId, BasicPct, HraPct, YesNo, ChildCount, FinalOption, LevelMaster,
 } from '../../engine/types';
-import { defaultMpliForLevel } from '../../engine/engine';
+import { defaultMpliForLevel, bandForLevel } from '../../engine/engine';
 import {
-  LEVEL_OPTIONS, MPLI_OPTIONS, NPS_OPTIONS, BASIC_OPTIONS, HRA_OPTIONS, CHILD_OPTIONS,
+  LEVEL_OPTIONS, BASIC_OPTIONS, HRA_OPTIONS, CHILD_OPTIONS, npsOptions,
 } from '../../data/data';
 import { INPUT_COPY } from '../../data/strings';
 import { formatINR } from '../../format/currency';
@@ -91,15 +91,23 @@ export function CandidateSection({ form, setForm }: Omit<SectionProps, 'master'>
 
 export function OfferSection({ form, setForm, master }: SectionProps) {
   const set = patchers(setForm).offer;
+  const band = bandForLevel(form.offer.level, master.levels[form.offer.level]);
   const onLevelChange = (raw: string) => {
     const level = raw as LevelId;
-    const band = defaultMpliForLevel(master, level);
-    set({ level, ...(band ? { mpliPct: band } : {}) });
+    const newBand = bandForLevel(level, master.levels[level]);
+    const variablePct = defaultMpliForLevel(master, level) ?? newBand.variablePctOptions[0];
+    // Crossing bands: reset variable % to the band default, clamp NPS to the new
+    // max, and clear Car Allowance when the new band doesn't use it.
+    setForm((f) => ({
+      ...f,
+      offer: { ...f.offer, level, variablePct, carAllowance: newBand.hasCarAllowance ? f.offer.carAllowance : 0 },
+      structure: { ...f.structure, npsPct: Math.min(f.structure.npsPct, newBand.npsMaxPct) },
+    }));
   };
   return (
     <div className="flex flex-col gap-3">
       <SelectField<LevelId> id="offer-level" label={INPUT_COPY.level.label} value={form.offer.level} options={LEVEL_OPTIONS.map((l) => ({ value: l, label: l }))} onChange={onLevelChange} />
-      <SelectField<MpliPct> id="offer-mpli" label={INPUT_COPY.mpliPct.label} tooltip={INPUT_COPY.mpliPct.tooltip} value={form.offer.mpliPct} options={numOpts(MPLI_OPTIONS) as { value: MpliPct; label: string }[]} onChange={(raw) => set({ mpliPct: Number(raw) as MpliPct })} />
+      <SelectField<number> id="offer-variable" label={band.variablePctLabel} tooltip={`Variable pay (${band.variableShortLabel}) — ${band.variableOfFixed ? '% of Fixed' : '% of CTC'}. Defaults to the band rate for the level.`} value={form.offer.variablePct} options={band.variablePctOptions.map((p) => ({ value: p, label: `${p}%` }))} onChange={(raw) => set({ variablePct: Number(raw) })} />
       <SelectField<FinalOption> id="offer-final" label={INPUT_COPY.finalOption.label} tooltip={INPUT_COPY.finalOption.tooltip} value={form.offer.finalOption} options={[
         { value: 1, label: 'Option 1 · +10%' },
         { value: 2, label: 'Option 2 · +15%' },
@@ -107,17 +115,21 @@ export function OfferSection({ form, setForm, master }: SectionProps) {
         { value: 4, label: 'Option 4 · Manual' },
       ]} onChange={(raw) => set({ finalOption: Number(raw) as FinalOption })} />
       <NumberField id="offer-manual" label={INPUT_COPY.manualOption4CTC.label} tooltip={INPUT_COPY.manualOption4CTC.tooltip} value={form.offer.manualOption4CTC} step={1000} onChange={(v) => set({ manualOption4CTC: v })} />
+      {band.hasCarAllowance && (
+        <NumberField id="offer-car" label="Car Allowance (p.a.)" tooltip="Optional car allowance, added to Total Remuneration (M-2 to M-4)." value={form.offer.carAllowance} step={1000} onChange={(v) => set({ carAllowance: v })} />
+      )}
     </div>
   );
 }
 
 export function StructureSection({ form, setForm }: Omit<SectionProps, 'master'>) {
   const set = patchers(setForm).structure;
+  const band = bandForLevel(form.offer.level);
   return (
     <div className="flex flex-col gap-3">
       <SelectField<BasicPct> id="struct-basic" label={INPUT_COPY.basicPct.label} tooltip={INPUT_COPY.basicPct.tooltip} value={form.structure.basicPct} options={numOpts(BASIC_OPTIONS) as { value: BasicPct; label: string }[]} onChange={(raw) => set({ basicPct: Number(raw) as BasicPct })} />
       <SelectField<HraPct> id="struct-hra" label={INPUT_COPY.hraPct.label} tooltip={INPUT_COPY.hraPct.tooltip} value={form.structure.hraPct} options={numOpts(HRA_OPTIONS) as { value: HraPct; label: string }[]} onChange={(raw) => set({ hraPct: Number(raw) as HraPct })} />
-      <SelectField<NpsPct> id="struct-nps" label={INPUT_COPY.npsPct.label} tooltip={INPUT_COPY.npsPct.tooltip} value={form.structure.npsPct} options={numOpts(NPS_OPTIONS) as { value: NpsPct; label: string }[]} onChange={(raw) => set({ npsPct: Number(raw) as NpsPct })} />
+      <SelectField<number> id="struct-nps" label={INPUT_COPY.npsPct.label} tooltip={`Employer NPS as % of annual Basic (0–${band.npsMaxPct}%).`} value={form.structure.npsPct} options={npsOptions(band.npsMaxPct).map((p) => ({ value: p, label: `${p}%` }))} onChange={(raw) => set({ npsPct: Number(raw) })} />
       <ToggleField<YesNo> label={INPUT_COPY.pf.label} tooltip={INPUT_COPY.pf.tooltip} value={form.structure.pf} options={[{ value: 'Y', label: 'Yes' }, { value: 'N', label: 'No' }]} onChange={(v) => set({ pf: v })} />
       <NumberField id="struct-food" label={INPUT_COPY.foodCouponsMonthly.label} tooltip={INPUT_COPY.foodCouponsMonthly.tooltip} value={form.structure.foodCouponsMonthly} suffix="/mo" onChange={(v) => set({ foodCouponsMonthly: v })} />
     </div>

@@ -1,5 +1,5 @@
-import type { LevelId, LevelRecord, LevelMaster, MpliPct } from '../engine/types';
-import { LEVEL_OPTIONS, MPLI_OPTIONS } from './data';
+import type { LevelId, LevelRecord, LevelMaster } from '../engine/types';
+import { LEVEL_OPTIONS } from './data';
 
 export class DataValidationError extends Error {
   constructor(message: string) {
@@ -40,7 +40,7 @@ export function validateLevelMaster(raw: unknown): LevelMaster {
   const bandsRaw = isObject(raw.mpliBands) ? raw.mpliBands : {};
 
   const levels: Partial<Record<LevelId, LevelRecord>> = {};
-  const mpliBands: Partial<Record<LevelId, MpliPct>> = {};
+  const mpliBands: Partial<Record<LevelId, number>> = {};
 
   for (const id of LEVEL_OPTIONS) {
     const recRaw = (raw.levels as Record<string, unknown>)[id];
@@ -49,15 +49,15 @@ export function validateLevelMaster(raw: unknown): LevelMaster {
 
     const band = (bandsRaw as Record<string, unknown>)[id];
     if (band !== undefined) {
-      if (!MPLI_OPTIONS.includes(band as MpliPct)) {
-        throw new DataValidationError(`mpliBands.${id} must be one of ${MPLI_OPTIONS.join('/')}.`);
+      if (typeof band !== 'number' || !Number.isFinite(band)) {
+        throw new DataValidationError(`mpliBands.${id} must be a number (the default variable %).`);
       }
-      mpliBands[id] = band as MpliPct;
+      mpliBands[id] = band;
     }
   }
 
   if (Object.keys(levels).length === 0) {
-    throw new DataValidationError('No recognised levels (M-5 … M-11) found in "levels".');
+    throw new DataValidationError('No recognised levels (M-2 … M-11) found in "levels".');
   }
   return { levels, mpliBands, source: 'user-json' };
 }

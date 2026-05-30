@@ -10,7 +10,7 @@ const DIST = 'dist';
 
 // Distinctive amounts that occur only in the confidential tables. (15000000 is
 // deliberately excluded — it is also the legitimate option-4 default CTC.)
-const SENTINELS = ['58333', '43750', '7500000'];
+const SENTINELS = ['58333', '43750', '7500000', '20000000'];
 
 if (!existsSync(DIST)) {
   console.error(`check-leak: "${DIST}/" not found — run \`npm run build\` first.`);

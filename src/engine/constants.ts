@@ -1,4 +1,4 @@
-import type { ChildCount } from './types';
+import type { ChildCount, BandId, BandConfig, LevelId } from './types';
 
 // Universal (non level-specific) policy constants. These are NOT confidential —
 // the same figures appear verbatim in offer-letter remarks. The confidential,
@@ -19,3 +19,41 @@ export const HRA_NONMETRO_CAP = 0.5; // of Basic
 
 export const CEA_PM: Record<ChildCount, number> = { NONE: 0, ONE: 3000, TWO: 6000 };
 export const CHA_PM: Record<ChildCount, number> = { NONE: 0, ONE: 9000, TWO: 18000 };
+
+// Per-band rules. M5-M11 and M2-M4 use different variable maths and rounding.
+export const BAND_CONFIGS: Record<BandId, BandConfig> = {
+  'M5-M11': {
+    id: 'M5-M11',
+    ctcRound: 1000,
+    fixedRound: 1000,
+    variableOfFixed: false,
+    variableShortLabel: 'MPLI',
+    variableLineLabel: 'MPLI (Monthly Performance Linked Incentive)',
+    variablePctLabel: 'MPLI %',
+    variablePctOptions: [12, 15, 20],
+    npsMaxPct: 10,
+    mobileAnnual: false,
+    hasCarAllowance: false,
+    ratioOfFixed: false,
+  },
+  'M2-M4': {
+    id: 'M2-M4',
+    ctcRound: 500,
+    fixedRound: 1000,
+    variableOfFixed: true,
+    variableShortLabel: 'APB',
+    variableLineLabel: 'APB (Annual Performance Bonus)',
+    variablePctLabel: 'APB %',
+    variablePctOptions: [15, 20, 25, 30],
+    npsMaxPct: 14,
+    mobileAnnual: true,
+    hasCarAllowance: true,
+    ratioOfFixed: true,
+  },
+};
+
+export const LEVEL_BAND: Record<LevelId, BandId> = {
+  'M-2': 'M2-M4', 'M-3': 'M2-M4', 'M-4': 'M2-M4',
+  'M-5': 'M5-M11', 'M-6': 'M5-M11', 'M-7': 'M5-M11', 'M-8': 'M5-M11',
+  'M-9': 'M5-M11', 'M-10': 'M5-M11', 'M-11': 'M5-M11',
+};

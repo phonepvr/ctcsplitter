@@ -42,7 +42,14 @@ function rows(result: OfferResult, opts: ClipboardOpts, extras: OfferExtras): Ro
   out.push({ cells: ['Mediclaim', '', fmt(oa.mediclaimAnnual), 'Self, spouse + first two children'] });
   out.push({ cells: ['Group Personal Accident', '', fmt(oa.groupPersonalAccidentAnnual), 'Self'] });
   out.push({ cells: ['Term Insurance', '', fmt(oa.termInsuranceAnnual), 'Self'] });
-  out.push({ cells: ['Mobile Reimbursement', fmt(oa.mobileReimbMonthly), '', 'Per month'] });
+  out.push({
+    cells: [
+      'Mobile Reimbursement',
+      oa.mobileReimbIsAnnual ? '' : fmt(oa.mobileReimb),
+      oa.mobileReimbIsAnnual ? fmt(oa.mobileReimb) : '',
+      oa.mobileReimbIsAnnual ? 'Per year' : 'Per month',
+    ],
+  });
   out.push({ cells: ['Gratuity', '', fmt(oa.gratuityAnnual), '4.81% of annual Basic'] });
 
   if (extras.addons) {

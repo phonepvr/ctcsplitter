@@ -1,4 +1,5 @@
 import type { Inputs } from '../engine/types';
+import { bandForLevel } from '../engine/engine';
 
 // All user-facing copy lives here, decoupled from the (pure-numeric) engine so
 // it can be revised or localised without touching logic.
@@ -31,17 +32,23 @@ export const STRUCTURE_REMARKS: Record<string, string> = {
  * live inputs so the explanation always reflects the chosen percentages.
  */
 export function buildTooltips(i: Inputs): Record<string, string> {
+  const band = bandForLevel(i.offer.level);
+  const v = band.variableShortLabel;
   return {
     // --- offer options ---
-    'option.totalCTC': 'Current total CTC increased by 10% / 15% / 20%, rounded to the nearest ₹1,000. Option 4 is a manually entered absolute CTC.',
-    'option.mpli': `MPLI = Total Target CTC × MPLI% (${i.offer.mpliPct}%), rounded to nearest ₹1,000. This is the variable-pay portion.`,
-    'option.fixed': 'Fixed (guaranteed) salary = Total Target CTC − MPLI.',
+    'option.totalCTC': `Current total CTC increased by 10% / 15% / 20%, rounded to the nearest ₹${band.ctcRound.toLocaleString('en-IN')}. Option 4 is a manually entered absolute CTC.`,
+    'option.mpli': `${v} (${i.offer.variablePct}%) is the variable pay — ${band.variableOfFixed ? '% of Fixed salary' : '% of Total CTC'}.`,
+    'option.fixed': band.variableOfFixed
+      ? `Fixed (guaranteed) salary = Total CTC ÷ (1 + ${v}%), rounded to ₹1,000.`
+      : `Fixed (guaranteed) salary = Total Target CTC − ${v}.`,
     // --- Section A summary ---
     'summary.offerFixed': 'The fixed salary of the selected final option.',
     'summary.pctIncFixed': "Increase of the offered fixed salary over the candidate's current fixed salary (without gratuity).",
     'summary.offerMPLI': "Variable pay of the selected option, and its change vs the candidate's current variable pay.",
     'summary.offerCTC': 'Total CTC of the selected option and its increase over current total CTC.',
-    'summary.varToTotal': 'Share of total CTC that is variable (MPLI ÷ Total CTC). Lower = more guaranteed pay.',
+    'summary.varToTotal': band.ratioOfFixed
+      ? `Variable as a share of Fixed salary (${v} ÷ Fixed).`
+      : 'Share of total CTC that is variable (MPLI ÷ Total CTC). Lower = more guaranteed pay.',
     // --- Section D structure ---
     basic: `Basic salary = ${i.structure.basicPct}% of total CTC. Capped 15–40% of CTC. HRA and retirals are linked to Basic.`,
     hra: `House Rent Allowance = ${i.structure.hraPct}% of Basic. Cap: 60% of Basic (metro) / 50% (non-metro).`,
@@ -56,13 +63,15 @@ export function buildTooltips(i: Inputs): Record<string, string> {
     pf: 'Employer PF = 12% of annual Basic. Employee contributes a matching amount from salary.',
     nps: `Employer NPS = ${i.structure.npsPct}% of annual Basic. Max 10% (old regime) / 14% (new regime); min ₹6,000 p.a.`,
     totalFixed: 'Total Fixed Salary (A + B + C) — equals the offered fixed salary; the Personal Allowance plug guarantees this.',
-    mpli: 'Monthly Performance Linked Incentive — the variable pay of the selected option.',
+    mpli: `${band.variableLineLabel} — the variable pay of the selected option.`,
+    carAllowance: 'Optional car allowance (p.a.) for M-2 to M-4; added to Total Remuneration.',
+    totalRemuneration: 'Total CTC plus Car Allowance.',
     grandTotal: 'Grand Total = Total Fixed Salary + MPLI = the offered Total CTC.',
     // --- Section C over-and-above ---
     'oa.mediclaim': 'Annual health insurance cover for self, spouse and first two dependent children, by level.',
     'oa.gpa': 'Group accident insurance cover for self, by level.',
     'oa.term': 'Term life cover for self, by level.',
-    'oa.mobile': 'Monthly mobile bill reimbursement, by level.',
+    'oa.mobile': band.mobileAnnual ? 'Annual mobile reimbursement, by level.' : 'Monthly mobile bill reimbursement, by level.',
     'oa.gratuity': 'Statutory gratuity provision = 4.81% of annual Basic. Payable after 5 years of continuous service.',
   };
 }

@@ -47,7 +47,7 @@ function Recap({ result, paise }: { result: OfferResult; paise: boolean }) {
   const items = [
     { label: 'Total CTC', value: formatINR(s.offerCTC, { paise }), delta: s.pctIncCTC },
     { label: 'Fixed salary', value: formatINR(s.offerFixed, { paise }), delta: s.pctIncFixed },
-    { label: 'MPLI (variable)', value: formatINR(s.offerMPLI, { paise }), delta: s.pctIncMPLI },
+    { label: `${result.band.variableShortLabel} (variable)`, value: formatINR(s.offerMPLI, { paise }), delta: s.pctIncMPLI },
   ];
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

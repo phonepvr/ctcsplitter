@@ -7,7 +7,7 @@ import type { Inputs, OfferResult } from './types';
 // The acceptance / golden case from the source workbook.
 const golden: Inputs = {
   candidate: { currentAnnualFixedWithoutGratuity: 3104004, currentAnnualVariable: 579180 },
-  offer: { level: 'M-9', mpliPct: 12, finalOption: 2, manualOption4CTC: 15_000_000 },
+  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4CTC: 15_000_000, carAllowance: 0 },
   structure: { basicPct: 40, hraPct: 40, npsPct: 0, pf: 'Y', foodCouponsMonthly: 9600 },
   eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };
@@ -33,7 +33,7 @@ describe('computeOffer — golden case (M-9, +15%, option 2)', () => {
     expect(r.summary.pctIncFixed!).toBeCloseTo(0.201029, 5);
     expect(r.summary.pctIncMPLI!).toBeCloseTo(-0.122898, 5);
     expect(r.summary.pctIncCTC!).toBeCloseTo(0.150092, 5);
-    expect(r.summary.offerVarToTotal).toBeCloseTo(0.119924, 5);
+    expect(r.summary.offerVarRatio).toBeCloseTo(0.119924, 5);
   });
 
   it('builds the compensation structure to spec', () => {
@@ -53,8 +53,10 @@ describe('computeOffer — golden case (M-9, +15%, option 2)', () => {
     expect(r.overAndAbove.mediclaimAnnual).toBe(450000);
     expect(r.overAndAbove.groupPersonalAccidentAnnual).toBe(5000000);
     expect(r.overAndAbove.termInsuranceAnnual).toBe(5000000);
-    expect(r.overAndAbove.mobileReimbMonthly).toBe(425);
+    expect(r.overAndAbove.mobileReimb).toBe(425);
+    expect(r.overAndAbove.mobileReimbIsAnnual).toBe(false);
     expect(r.overAndAbove.gratuityAnnual).toBeCloseTo(81500.64, 2);
+    expect(r.band.id).toBe('M5-M11');
   });
 
   it('flags the transport overshoot but not a mismatch', () => {
@@ -155,5 +157,47 @@ describe('computeOffer — edge cases', () => {
 
   it('throws MissingLevelError when no data is loaded for the level', () => {
     expect(() => computeOffer(golden, emptyMaster)).toThrow(MissingLevelError);
+  });
+});
+
+describe('computeOffer — M2-M4 band (M-2, APB 25%, option 2)', () => {
+  const m2: Inputs = {
+    candidate: { currentAnnualFixedWithoutGratuity: 3104004, currentAnnualVariable: 579180 },
+    offer: { level: 'M-2', variablePct: 25, finalOption: 2, manualOption4CTC: 15_000_000, carAllowance: 0 },
+    structure: { basicPct: 40, hraPct: 40, npsPct: 0, pf: 'Y', foodCouponsMonthly: 9600 },
+    eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
+  };
+  const r = computeOffer(m2, bundledMaster);
+
+  it('uses APB-of-fixed maths and 500 CTC rounding', () => {
+    expect(r.band.id).toBe('M2-M4');
+    expect(r.options[1].totalCTC).toBe(4235500); // MROUND(3683184*1.15, 500)
+    expect(r.options[1].fixed).toBe(3388000); // MROUND(4235500/1.25, 1000)
+    expect(r.options[1].mpli).toBe(847500); // APB = CTC - Fixed
+    expect(r.summary.offerVarRatio).toBeCloseTo(0.250148, 5); // APB / Fixed (Fixed is rounded)
+  });
+
+  it('reproduces the M-2 structure incl. the negative Personal Allowance', () => {
+    expect(lineAnnual(r, 'basic')).toBeCloseTo(1694200, 2);
+    expect(lineAnnual(r, 'hra')).toBeCloseTo(677680, 2);
+    expect(lineAnnual(r, 'ber')).toBe(720000); // 60000 x 12
+    expect(lineAnnual(r, 'personalAllowance')).toBeCloseTo(-178384, 2);
+    expect(r.flags.negativePersonalAllowance).toBe(true);
+    expect(r.structure.grandTotalCTC).toBe(4235500);
+  });
+
+  it('takes over-and-above from Source M1-M4 (mobile is annual)', () => {
+    expect(r.overAndAbove.mediclaimAnnual).toBe(1000000);
+    expect(r.overAndAbove.groupPersonalAccidentAnnual).toBe(20000000);
+    expect(r.overAndAbove.termInsuranceAnnual).toBe(20000000);
+    expect(r.overAndAbove.mobileReimb).toBe(9000);
+    expect(r.overAndAbove.mobileReimbIsAnnual).toBe(true);
+    expect(r.overAndAbove.gratuityAnnual).toBeCloseTo(81491.02, 2);
+  });
+
+  it('exposes Car Allowance and Total Remuneration', () => {
+    const ca = computeOffer({ ...m2, offer: { ...m2.offer, carAllowance: 120000 } }, bundledMaster);
+    expect(lineAnnual(ca, 'carAllowance')).toBe(120000);
+    expect(ca.summary.totalRemuneration).toBe(4235500 + 120000);
   });
 });

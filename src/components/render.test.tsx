@@ -18,7 +18,7 @@ const form: FormState = {
     additionalHra: 0, fuelMaintenance: 0, lta: 0, pf: 0, nps: 0, superannuation: 0,
     gratuity: 0, variable: 579180 / 12,
   },
-  offer: { level: 'M-9', mpliPct: 12, finalOption: 2, manualOption4CTC: 15_000_000 },
+  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4CTC: 15_000_000, carAllowance: 0 },
   eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };
 // Put the whole fixed-without-gratuity into "basic" for the smoke test.
@@ -63,6 +63,23 @@ describe('UI smoke render (golden numbers)', () => {
     expect(html).toContain('Mumbai'); // header — Location
     expect(html).toContain('Bonuses'); // add-ons summary (A2)
     expect(html).toContain('5,00,000'); // retention bonus amount
+  });
+});
+
+describe('M2-M4 band', () => {
+  it('shows APB and M-2 numbers on the comparison panel', () => {
+    const m2Inputs = {
+      ...inputs,
+      offer: { level: 'M-2' as const, variablePct: 25, finalOption: 2 as const, manualOption4CTC: 15_000_000, carAllowance: 0 },
+    };
+    const m2 = computeOffer(m2Inputs, bundledMaster);
+    const html = renderToStaticMarkup(
+      <ComparisonPanel result={m2} tooltips={buildTooltips(m2Inputs)} paise={false} onSelectOption={() => {}} />,
+    );
+    expect(m2.band.id).toBe('M2-M4');
+    expect(html).toContain('APB');
+    expect(html).toContain('33,88,000'); // M-2 fixed
+    expect(html).toContain('Var : Fixed — offer'); // band-aware ratio label
   });
 });
 

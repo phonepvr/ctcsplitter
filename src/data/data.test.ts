@@ -16,7 +16,7 @@ describe('bundled master', () => {
 describe('validateLevelMaster', () => {
   it('accepts the shipped sample JSON and types it', () => {
     const master = validateLevelMaster(sample);
-    expect(Object.keys(master.levels)).toHaveLength(7);
+    expect(Object.keys(master.levels)).toHaveLength(10);
     expect(master.source).toBe('user-json');
     const m9 = master.levels['M-9']!;
     expect(m9.mbrPm).toBe(425);
