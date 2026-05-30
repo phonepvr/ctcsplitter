@@ -66,6 +66,22 @@ describe('buildStructureHTML', () => {
     expect(html).toContain('Basic Pay');
     expect(html).toContain('border:1px solid');
   });
+
+  it('renders the offer header as its own 2-column table (wide value column)', () => {
+    const html = buildStructureHTML(
+      result,
+      {},
+      {
+        meta: { name: 'Kishor', sapCode: '', company: '', position: 'Senior Manager', location: 'Mumbai', date: '2026-05-30' },
+        level: 'M-9',
+        isPlant: true,
+      },
+    );
+    expect((html.match(/<table/g) ?? []).length).toBe(2); // offer-details + structure
+    expect(html).toContain('colspan="2"'); // offer-details title spans its 2 cols
+    expect(html).toContain('colspan="4"'); // section dividers span the structure
+    expect(html).toContain('Senior Manager'); // long value no longer cramped
+  });
 });
 
 describe('copyOfferToClipboard', () => {
