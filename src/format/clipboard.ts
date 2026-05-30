@@ -1,6 +1,6 @@
 import type { OfferResult } from '../engine/types';
 import type { OfferMeta, Addons } from '../state/form';
-import { ADDON_ROWS } from '../state/form';
+import { ADDON_ROWS, EMPTY_META, offerHeaderPairs } from '../state/form';
 import { formatINR } from './currency';
 import { STRUCTURE_REMARKS } from '../data/strings';
 
@@ -11,6 +11,8 @@ export interface ClipboardOpts {
 export interface OfferExtras {
   meta?: OfferMeta;
   addons?: Addons;
+  level?: string;
+  isPlant?: boolean;
 }
 
 interface Row {
@@ -18,21 +20,16 @@ interface Row {
   bold?: boolean;
 }
 
-function hasMeta(meta?: OfferMeta): meta is OfferMeta {
-  return !!meta && !!(meta.name || meta.position || meta.location || meta.date);
-}
-
 function rows(result: OfferResult, opts: ClipboardOpts, extras: OfferExtras): Row[] {
   const fmt = (n: number) => formatINR(n, { paise: opts.paise, symbol: false });
   const out: Row[] = [];
 
-  if (hasMeta(extras.meta)) {
-    const m = extras.meta;
-    out.push({ cells: ['Offer details', '', '', ''], bold: true });
-    if (m.name) out.push({ cells: ['Name', m.name, '', ''] });
-    if (m.position) out.push({ cells: ['Position', m.position, '', ''] });
-    if (m.location) out.push({ cells: ['Location', m.location, '', ''] });
-    if (m.date) out.push({ cells: ['Date', m.date, '', ''] });
+  if (extras.meta || extras.level) {
+    const pairs = offerHeaderPairs(extras.meta ?? EMPTY_META, extras.level ?? '', !!extras.isPlant);
+    if (pairs.length > 0) {
+      out.push({ cells: ['Offer details', '', '', ''], bold: true });
+      for (const [label, value] of pairs) out.push({ cells: [label, value, '', ''] });
+    }
   }
 
   out.push({ cells: ['Salary Component', 'Monthly (₹)', 'Annum (₹)', 'Remarks'], bold: true });

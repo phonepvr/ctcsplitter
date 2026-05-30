@@ -79,20 +79,20 @@ export function Wizard({ form, setForm, master, inputs, result, tooltips, paise,
 
       {step === 1 && (
         <div>
-          <StepHead n={1} title="Candidate & current pay" intro="First, who the offer is for; then the candidate's current monthly components. We total them and work out the annual fixed (without gratuity) and variable used to build the offer." />
-          <div className="mb-5">
-            <Eyebrow>Offer details</Eyebrow>
-            <div className="mt-2">
-              <MetaSection form={form} setForm={setForm} />
-            </div>
-          </div>
+          <StepHead n={1} title="Candidate's current pay" intro="Enter the candidate's current monthly components. We total them and work out the annual fixed (without gratuity) and variable used to build the offer." />
           <CandidateSection form={form} setForm={setForm} />
         </div>
       )}
 
       {step === 2 && (
         <div>
-          <StepHead n={2} title="Build the offer" intro="Pick the level and MPLI %, then choose one of the four options — tap a card or use the dropdown. The selected option is carried into the structure." />
+          <StepHead n={2} title="Build the offer" intro="Capture the offer details, pick the level and MPLI %, then choose one of the four options — tap a card or use the dropdown. The selected option is carried into the structure." />
+          <div className="mb-5">
+            <Eyebrow>Offer details</Eyebrow>
+            <div className="mt-2">
+              <MetaSection form={form} setForm={setForm} />
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <OfferSection form={form} setForm={setForm} master={master} />

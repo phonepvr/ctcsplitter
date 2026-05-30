@@ -40,12 +40,18 @@ describe('buildStructureTSV with header + add-ons', () => {
       result,
       {},
       {
-        meta: { name: 'A. Sharma', position: 'Sr Manager', location: 'Mumbai', date: '2026-05-29' },
+        meta: { name: 'A. Sharma', sapCode: 'SAP123', company: 'AcmeCo', position: 'Sr Manager', location: 'Mumbai', date: '2026-05-29' },
+        level: 'M-9',
+        isPlant: true,
         addons: { ...ZERO_ADDONS, retention12: 500000, joining: 200000 },
       },
     );
     expect(tsv).toContain('Offer details');
     expect(tsv).toContain('A. Sharma');
+    expect(tsv).toContain('SAP Code');
+    expect(tsv).toContain('AcmeCo');
+    expect(tsv).toContain('M-9'); // level row
+    expect(tsv).toContain('Plant'); // plant / non-plant row
     expect(tsv).toContain('Bonuses & incentives');
     expect(tsv).toContain('Retention bonus — 12 months');
     expect(tsv).toContain('Joining bonus (in lieu of lost variable)');

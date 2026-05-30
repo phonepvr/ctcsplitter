@@ -93,6 +93,8 @@ export const INPUT_COPY: Record<string, FieldCopy> = {
   lta: { label: 'LTA reimbursement', tooltip: 'Adds the level’s LTA (per month × 12) when Yes.' },
   isMetro: { label: 'City type', tooltip: 'Metro raises the HRA cap to 60% of Basic (else 50%). Advisory only — it does not change the calculation.' },
   name: { label: 'Candidate name' },
+  sapCode: { label: 'SAP Code' },
+  company: { label: 'Company' },
   position: { label: 'Position' },
   location: { label: 'Location' },
   offerDate: { label: 'Offer date' },

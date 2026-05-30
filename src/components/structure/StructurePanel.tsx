@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { OfferResult, Inputs } from '../../engine/types';
 import type { OfferMeta, Addons } from '../../state/form';
-import { ADDON_ROWS } from '../../state/form';
+import { ADDON_ROWS, EMPTY_META, offerHeaderPairs } from '../../state/form';
 import { formatINR } from '../../format/currency';
 import { STRUCTURE_REMARKS } from '../../data/strings';
 import { copyOfferToClipboard } from '../../format/clipboard';
@@ -71,18 +71,13 @@ function ReconcileWarning({ result, inputs }: { result: OfferResult; inputs: Inp
   );
 }
 
-function MetaHeader({ meta }: { meta?: OfferMeta }) {
-  if (!meta || !(meta.name || meta.position || meta.location || meta.date)) return null;
-  const items = ([
-    ['Name', meta.name],
-    ['Position', meta.position],
-    ['Location', meta.location],
-    ['Date', meta.date],
-  ] as [string, string][]).filter(([, v]) => v);
+function MetaHeader({ meta, level, isPlant }: { meta?: OfferMeta; level: string; isPlant: boolean }) {
+  const pairs = offerHeaderPairs(meta ?? EMPTY_META, level, isPlant);
+  if (pairs.length === 0) return null;
   return (
     <div className="card p-3">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
-        {items.map(([k, v]) => (
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+        {pairs.map(([k, v]) => (
           <div key={k}>
             <div className="eyebrow">{k}</div>
             <div className="text-[14px] text-ink">{v}</div>
@@ -176,19 +171,21 @@ function AddonsSummary({ addons, paise }: { addons?: Addons; paise: boolean }) {
 }
 
 function ExportBar({
-  result, paise, meta, addons,
+  result, paise, meta, addons, level, isPlant,
 }: {
   result: OfferResult;
   paise: boolean;
   meta?: OfferMeta;
   addons?: Addons;
+  level: string;
+  isPlant: boolean;
 }) {
   const [copied, setCopied] = useState<'' | 'rich' | 'tsv'>('');
   const [err, setErr] = useState(false);
   const copy = async (fmt: 'rich' | 'tsv') => {
     setErr(false);
     try {
-      await copyOfferToClipboard(result, fmt, { paise }, { meta, addons });
+      await copyOfferToClipboard(result, fmt, { paise }, { meta, addons, level, isPlant });
       setCopied(fmt);
       setTimeout(() => setCopied(''), 1500);
     } catch {
@@ -212,7 +209,7 @@ function ExportBar({
 export function StructurePanel({ result, inputs, tooltips, paise, compact = false, meta, addons }: PanelProps) {
   return (
     <section className="flex flex-col gap-4">
-      {!compact && <MetaHeader meta={meta} />}
+      {!compact && <MetaHeader meta={meta} level={inputs.offer.level} isPlant={inputs.eligibility.isPlant} />}
 
       {!compact && (
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -220,7 +217,7 @@ export function StructurePanel({ result, inputs, tooltips, paise, compact = fals
             <Eyebrow>Compensation structure</Eyebrow>
             <h2 className="text-h3 text-ink">{inputs.offer.level} · offer-letter breakup</h2>
           </div>
-          <ExportBar result={result} paise={paise} meta={meta} addons={addons} />
+          <ExportBar result={result} paise={paise} meta={meta} addons={addons} level={inputs.offer.level} isPlant={inputs.eligibility.isPlant} />
         </div>
       )}
 

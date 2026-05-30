@@ -143,10 +143,12 @@ export function MetaSection({ form, setForm }: Omit<SectionProps, 'master'>) {
   const set = patchers(setForm).meta;
   const m = form.meta;
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <TextField id="meta-name" label={INPUT_COPY.name.label} value={m.name} placeholder="e.g. A. Sharma" onChange={(v) => set({ name: v })} />
       <TextField id="meta-position" label={INPUT_COPY.position.label} value={m.position} placeholder="e.g. Senior Manager" onChange={(v) => set({ position: v })} />
       <TextField id="meta-location" label={INPUT_COPY.location.label} value={m.location} placeholder="e.g. Mumbai" onChange={(v) => set({ location: v })} />
+      <TextField id="meta-sap" label={INPUT_COPY.sapCode.label} value={m.sapCode} placeholder="optional" onChange={(v) => set({ sapCode: v })} />
+      <TextField id="meta-company" label={INPUT_COPY.company.label} value={m.company} placeholder="optional" onChange={(v) => set({ company: v })} />
       <TextField id="meta-date" type="date" label={INPUT_COPY.offerDate.label} value={m.date} onChange={(v) => set({ date: v })} />
     </div>
   );

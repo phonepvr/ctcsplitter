@@ -45,7 +45,7 @@ describe('UI smoke render (golden numbers)', () => {
         inputs={inputs}
         tooltips={tooltips}
         paise={false}
-        meta={{ name: 'A. Sharma', position: 'Sr Manager', location: 'Mumbai', date: '2026-05-29' }}
+        meta={{ name: 'A. Sharma', sapCode: 'SAP123', company: 'AcmeCo', position: 'Sr Manager', location: 'Mumbai', date: '2026-05-29' }}
         addons={{ retention12: 500000, retention24: 0, retention36: 0, joining: 0, ltip12: 0, ltip24: 0, ltip36: 0, ltip48: 0 }}
       />,
     );
@@ -57,7 +57,10 @@ describe('UI smoke render (golden numbers)', () => {
     expect(html).toContain('Mediclaim');
     // transport overshoot warning is shown (transport = Y)
     expect(html).toContain('over-and-above');
-    expect(html).toContain('A. Sharma'); // meta header (A1)
+    expect(html).toContain('A. Sharma'); // header — name (A1)
+    expect(html).toContain('SAP123'); // header — SAP Code (A1)
+    expect(html).toContain('AcmeCo'); // header — Company (A1)
+    expect(html).toContain('Mumbai'); // header — Location
     expect(html).toContain('Bonuses'); // add-ons summary (A2)
     expect(html).toContain('5,00,000'); // retention bonus amount
   });

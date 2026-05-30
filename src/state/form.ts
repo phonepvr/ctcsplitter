@@ -25,9 +25,29 @@ export interface CandidateItemized {
 // Offer-letter header metadata (does not affect the calculation).
 export interface OfferMeta {
   name: string;
+  sapCode: string;
+  company: string;
   position: string;
   location: string;
   date: string; // ISO yyyy-mm-dd
+}
+
+export const EMPTY_META: OfferMeta = {
+  name: '', sapCode: '', company: '', position: '', location: '', date: '',
+};
+
+/** Offer-letter header rows (label, value); blank optional fields are dropped. */
+export function offerHeaderPairs(meta: OfferMeta, level: string, isPlant: boolean): [string, string][] {
+  return ([
+    ['Name', meta.name],
+    ['SAP Code', meta.sapCode],
+    ['Company', meta.company],
+    ['Level', level],
+    ['Location', meta.location],
+    ['Position', meta.position],
+    ['Plant / Non-plant', isPlant ? 'Plant' : 'Non-plant'],
+    ['Date', meta.date],
+  ] as [string, string][]).filter(([, v]) => v != null && String(v).trim() !== '');
 }
 
 // Manual add-ons (free amounts, no calculation) shown on the offer letter.
@@ -133,7 +153,7 @@ export function initialForm(level: LevelId, mpliPct: MpliPct): FormState {
       foodCouponsMonthly: DEFAULTS.foodCouponsMonthly,
     },
     eligibility: { isPlant: false, isMetro: false, transport: 'N', cea: 'NONE', cha: 'NONE', ber: 'N', lta: 'N' },
-    meta: { name: '', position: '', location: '', date: new Date().toISOString().slice(0, 10) },
+    meta: { name: '', sapCode: '', company: '', position: '', location: '', date: new Date().toISOString().slice(0, 10) },
     addons: { ...ZERO_ADDONS },
   };
 }
