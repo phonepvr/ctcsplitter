@@ -34,7 +34,7 @@ interface WizardProps {
 
 function StepHead({ n, title, intro }: { n: number; title: string; intro: string }) {
   return (
-    <div className="mb-4">
+    <div className="mb-4 no-print">
       <div className="eyebrow">Step {n} of 4</div>
       <h2 className="text-h2 text-ink">{title}</h2>
       <p className="mt-1 max-w-2xl text-[13px] text-muted">{intro}</p>

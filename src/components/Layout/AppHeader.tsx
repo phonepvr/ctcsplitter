@@ -12,7 +12,7 @@ function Mark() {
 
 export function AppHeader() {
   return (
-    <header className="border-b border-hairline">
+    <header className="no-print border-b border-hairline">
       <div className="mx-auto flex max-w-wide flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
           <Mark />
