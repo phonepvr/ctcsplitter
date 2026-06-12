@@ -3,7 +3,12 @@ import type {
 } from '../engine/types';
 import { DEFAULTS } from '../data/data';
 
-// Candidate current comp as itemised MONTHLY line items (mirrors the Excel
+// How the candidate's current-comp line items are entered. The raw numbers in
+// CandidateItemized are interpreted per this mode; the engine always receives
+// derived ANNUAL totals.
+export type EntryMode = 'monthly' | 'annual';
+
+// Candidate current comp as itemised line items (mirrors the Excel
 // "Candidate Current Comp Structur" sheet). The engine only needs the two
 // derived annual totals, computed by `deriveCandidate`.
 export interface CandidateItemized {
@@ -80,6 +85,7 @@ export const ADDON_ROWS: [keyof Addons, string][] = [
 ];
 
 export interface FormState {
+  entryMode: EntryMode; // how candidate amounts are entered (monthly | annual)
   candidate: CandidateItemized;
   offer: OfferParamInputs;
   structure: StructureInputs;
@@ -112,24 +118,26 @@ export interface DerivedCandidate {
   currentAnnualVariable: number;
 }
 
-export function deriveCandidate(c: CandidateItemized): DerivedCandidate {
+export function deriveCandidate(c: CandidateItemized, mode: EntryMode = 'monthly'): DerivedCandidate {
+  // Normalise every entered amount to monthly first; annual entries are /12.
+  const m = (v: number) => (mode === 'annual' ? v / 12 : v);
   const flexMonthly =
-    c.educationOfficeWear + c.broadbandFoodGift + c.hra + c.residualChoicePay +
-    c.additionalHra + c.fuelMaintenance + c.lta;
-  const retiralsMonthly = c.pf + c.nps + c.superannuation + c.gratuity;
-  const totalFixedMonthly = c.basic + flexMonthly + retiralsMonthly;
+    m(c.educationOfficeWear) + m(c.broadbandFoodGift) + m(c.hra) + m(c.residualChoicePay) +
+    m(c.additionalHra) + m(c.fuelMaintenance) + m(c.lta);
+  const retiralsMonthly = m(c.pf) + m(c.nps) + m(c.superannuation) + m(c.gratuity);
+  const totalFixedMonthly = m(c.basic) + flexMonthly + retiralsMonthly;
   return {
     flexMonthly,
     retiralsMonthly,
     totalFixedMonthly,
-    currentAnnualFixedWithoutGratuity: (totalFixedMonthly - c.gratuity) * 12,
-    currentAnnualVariable: c.variable * 12,
+    currentAnnualFixedWithoutGratuity: (totalFixedMonthly - m(c.gratuity)) * 12,
+    currentAnnualVariable: m(c.variable) * 12,
   };
 }
 
 /** Project the UI form onto the engine's Inputs contract. */
 export function toInputs(form: FormState): Inputs {
-  const d = deriveCandidate(form.candidate);
+  const d = deriveCandidate(form.candidate, form.entryMode);
   return {
     candidate: {
       currentAnnualFixedWithoutGratuity: d.currentAnnualFixedWithoutGratuity,
@@ -143,8 +151,16 @@ export function toInputs(form: FormState): Inputs {
 
 export function initialForm(level: LevelId, variablePct: number): FormState {
   return {
+    // HR feedback: amounts are usually quoted annually — default to annual entry.
+    entryMode: 'annual',
     candidate: { ...ZERO_CANDIDATE },
-    offer: { level, variablePct, finalOption: 2, manualOption4CTC: DEFAULTS.manualOption4CTC, carAllowance: DEFAULTS.carAllowance },
+    offer: {
+      level, variablePct, finalOption: 2,
+      manualOption4Mode: DEFAULTS.manualOption4Mode,
+      manualOption4CTC: DEFAULTS.manualOption4CTC,
+      manualOption4Pct: DEFAULTS.manualOption4Pct,
+      carAllowance: DEFAULTS.carAllowance,
+    },
     structure: {
       basicPct: DEFAULTS.basicPct,
       hraPct: DEFAULTS.hraPct,

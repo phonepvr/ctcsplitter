@@ -18,7 +18,9 @@ import type { LevelId, LevelRecord, LevelMaster } from '../engine/types';
 // ============================================================================
 
 export const MPLI_BANDS: Record<LevelId, number> = {
-  'M-2': 20, 'M-3': 20, 'M-4': 20, // APB % of Fixed (default band rate)
+  // M2-M4: APB default = 25% of Fixed, which is the policy "20% of CTC"
+  // (APB = CTC - CTC/1.25 = 20% of CTC). Confirmed by HR feedback.
+  'M-2': 25, 'M-3': 25, 'M-4': 25,
   'M-5': 20, 'M-6': 20, 'M-7': 20, 'M-8': 15, 'M-9': 12, 'M-10': 12, 'M-11': 12,
 };
 

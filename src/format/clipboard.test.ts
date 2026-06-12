@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { computeOffer } from '../engine/engine';
+import { computeOffer, displayLines } from '../engine/engine';
 import { bundledMaster } from '../data/levelMaster';
 import { buildStructureTSV, buildStructureHTML, copyOfferToClipboard } from './clipboard';
 import { ZERO_ADDONS } from '../state/form';
@@ -7,7 +7,7 @@ import type { Inputs } from '../engine/types';
 
 const golden: Inputs = {
   candidate: { currentAnnualFixedWithoutGratuity: 3104004, currentAnnualVariable: 579180 },
-  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4CTC: 15_000_000, carAllowance: 0 },
+  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4Mode: 'amount', manualOption4CTC: 15_000_000, manualOption4Pct: 15, carAllowance: 0 },
   structure: { basicPct: 40, hraPct: 40, npsPct: 0, pf: 'Y', foodCouponsMonthly: 9600 },
   eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };
@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe('buildStructureTSV', () => {
-  it('emits a header, every structure row and the over-and-above block', () => {
+  it('emits the fitment rows (zeros omitted) and the over-and-above block', () => {
     const tsv = buildStructureTSV(result);
     const lines = tsv.split('\n');
     expect(lines[0]).toContain('Salary Component');
@@ -27,10 +27,20 @@ describe('buildStructureTSV', () => {
     expect(tsv).toContain('16,94,400');
     expect(tsv).toContain('Grand Total');
     expect(tsv).toContain('Mediclaim');
-    // header + 19 structure lines + over-above header + 5 over-above rows
-    expect(lines).toHaveLength(1 + result.structure.lines.length + 6);
+    // zero components (LTA = N, NPS = 0) are omitted from the export
+    expect(tsv).not.toContain('Leave Travel Allowance');
+    expect(tsv).not.toContain('National Pension System');
+    // header + filtered structure lines + over-above divider + 5 over-above rows
+    const visible = displayLines(result.structure, true).length;
+    expect(lines).toHaveLength(1 + visible + 1 + 5);
     // tab-delimited, 4 columns
     expect(lines[1].split('\t')).toHaveLength(4);
+  });
+
+  it('states gratuity instead of calculating it', () => {
+    const tsv = buildStructureTSV(result);
+    expect(tsv).toContain('retire or resign');
+    expect(tsv).not.toContain('81,500'); // no computed gratuity amount
   });
 });
 

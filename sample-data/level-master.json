@@ -1,5 +1,5 @@
 {
-  "_note": "CONFIDENTIAL — internal compensation policy (M-2..M-11). This is the file a user loads into the deployed calculator. Keep it OFF any public surface. M2-M4 use APB (% of Fixed); M5-M11 use MPLI (% of CTC).",
+  "_note": "CONFIDENTIAL — internal compensation policy (M-2..M-11). This is the file a user loads into the deployed calculator. Keep it OFF any public surface. M2-M4 use APB (% of Fixed; default 25% of Fixed = 20% of CTC); M5-M11 use MPLI (% of CTC).",
   "levels": {
     "M-2": { "band": "M2-M4", "berPm": 60000, "transportPm": 1600, "ltaPm": 7500, "variablePct": 0.20, "mbrPm": 750, "mobileReimbPa": 9000, "mhrLabel": "Smartphone", "hiPa": 1000000, "tlPa": 20000000, "vpAmt": 0, "gpaPa": 20000000 },
     "M-3": { "band": "M2-M4", "berPm": 45000, "transportPm": 1600, "ltaPm": 6250, "variablePct": 0.20, "mbrPm": 750, "mobileReimbPa": 9000, "mhrLabel": "Smartphone", "hiPa": 800000, "tlPa": 15000000, "vpAmt": 0, "gpaPa": 15000000 },
@@ -13,7 +13,7 @@
     "M-11": { "band": "M5-M11", "berPm": 12000, "transportPm": 1600, "ltaPm": 625, "variablePct": 0.12, "mbrPm": 425, "mhrLabel": "3000", "hiPa": 450000, "tlPa": 2500000, "vpAmt": 35000, "gpaPa": 5000000 }
   },
   "mpliBands": {
-    "M-2": 20, "M-3": 20, "M-4": 20,
+    "M-2": 25, "M-3": 25, "M-4": 25,
     "M-5": 20, "M-6": 20, "M-7": 20, "M-8": 15, "M-9": 12, "M-10": 12, "M-11": 12
   }
 }

@@ -21,7 +21,9 @@ function OptionCard({
   onSelect: (o: FinalOption) => void;
   varLabel: string;
 }) {
-  const tag = opt.incrementPct === null ? 'Manual' : `+${Math.round(opt.incrementPct * 100)}%`;
+  // Trim float noise: 0.1 -> "+10%", 0.175 -> "+17.5%"; absolute manual -> "Manual".
+  const pctValue = opt.incrementPct === null ? null : Math.round(opt.incrementPct * 1000) / 10;
+  const tag = pctValue === null ? 'Manual' : `+${pctValue}%`;
   return (
     <button
       type="button"

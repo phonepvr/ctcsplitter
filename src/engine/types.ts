@@ -52,8 +52,10 @@ export interface CandidateInputs {
 export interface OfferParamInputs {
   level: LevelId;
   variablePct: number; // MPLI% (of CTC) for M5-M11, or APB% (of Fixed) for M2-M4
-  finalOption: FinalOption; // 1|2|3 = +10/15/20%, 4 = manual absolute CTC
-  manualOption4CTC: number; // used only when finalOption === 4
+  finalOption: FinalOption; // 1|2|3 = +10/15/20%, 4 = manual
+  manualOption4Mode: 'amount' | 'percent'; // option 4: absolute CTC or custom % increase
+  manualOption4CTC: number; // used when mode === 'amount'
+  manualOption4Pct: number; // % increase used when mode === 'percent'
   carAllowance: number; // offer car allowance p.a. (M2-M4); 0 otherwise
 }
 

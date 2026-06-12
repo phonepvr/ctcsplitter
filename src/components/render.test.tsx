@@ -13,12 +13,13 @@ import { Wizard } from './Wizard';
 // derived fixed-without-gratuity = 3,104,004 and variable = 579,180.
 const form: FormState = {
   ...initialForm('M-9', 12),
+  entryMode: 'monthly', // candidate values below are monthly (annual / 12)
   candidate: {
     basic: 0, educationOfficeWear: 0, broadbandFoodGift: 0, hra: 0, residualChoicePay: 0,
     additionalHra: 0, fuelMaintenance: 0, lta: 0, pf: 0, nps: 0, superannuation: 0,
     gratuity: 0, variable: 579180 / 12,
   },
-  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4CTC: 15_000_000, carAllowance: 0 },
+  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4Mode: 'amount', manualOption4CTC: 15_000_000, manualOption4Pct: 15, carAllowance: 0 },
   eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };
 // Put the whole fixed-without-gratuity into "basic" for the smoke test.
@@ -63,6 +64,17 @@ describe('UI smoke render (golden numbers)', () => {
     expect(html).toContain('Mumbai'); // header — Location
     expect(html).toContain('Bonuses'); // add-ons summary (A2)
     expect(html).toContain('5,00,000'); // retention bonus amount
+    expect(html).toContain('retire or resign'); // gratuity statement, not amount
+    expect(html).not.toContain('81,500'); // computed gratuity is not displayed
+  });
+
+  it('hides zero components on the final fitment sheet', () => {
+    const html = renderToStaticMarkup(
+      <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={false} hideZeroRows />,
+    );
+    expect(html).not.toContain('Leave Travel Allowance'); // LTA = N
+    expect(html).not.toContain('National Pension System'); // NPS = 0
+    expect(html).toContain('Total Reimbursements B'); // non-zero subtotal stays
   });
 });
 
@@ -70,7 +82,10 @@ describe('M2-M4 band', () => {
   it('shows APB and M-2 numbers on the comparison panel', () => {
     const m2Inputs = {
       ...inputs,
-      offer: { level: 'M-2' as const, variablePct: 25, finalOption: 2 as const, manualOption4CTC: 15_000_000, carAllowance: 0 },
+      offer: {
+        level: 'M-2' as const, variablePct: 25, finalOption: 2 as const,
+        manualOption4Mode: 'amount' as const, manualOption4CTC: 15_000_000, manualOption4Pct: 15, carAllowance: 0,
+      },
     };
     const m2 = computeOffer(m2Inputs, bundledMaster);
     const html = renderToStaticMarkup(

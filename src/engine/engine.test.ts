@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeOffer, defaultMpliForLevel, MissingLevelError } from './engine';
+import { computeOffer, defaultMpliForLevel, displayLines, suggestBasicPct, MissingLevelError } from './engine';
 import { bundledMaster } from '../data/levelMaster';
 import { emptyMaster } from '../data/dataProvider';
 import type { Inputs, OfferResult } from './types';
@@ -7,7 +7,7 @@ import type { Inputs, OfferResult } from './types';
 // The acceptance / golden case from the source workbook.
 const golden: Inputs = {
   candidate: { currentAnnualFixedWithoutGratuity: 3104004, currentAnnualVariable: 579180 },
-  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4CTC: 15_000_000, carAllowance: 0 },
+  offer: { level: 'M-9', variablePct: 12, finalOption: 2, manualOption4Mode: 'amount', manualOption4CTC: 15_000_000, manualOption4Pct: 15, carAllowance: 0 },
   structure: { basicPct: 40, hraPct: 40, npsPct: 0, pf: 'Y', foodCouponsMonthly: 9600 },
   eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
 };
@@ -84,6 +84,19 @@ describe('computeOffer — edge cases', () => {
     expect(r.summary.offerCTC).toBe(15_000_000);
     expect(r.summary.offerMPLI).toBe(1_800_000);
     expect(r.summary.offerFixed).toBe(13_200_000);
+    expect(r.options[3].incrementPct).toBeNull();
+  });
+
+  it('option 4 supports a custom % increase', () => {
+    const r = computeOffer(
+      { ...golden, offer: { ...golden.offer, finalOption: 4, manualOption4Mode: 'percent', manualOption4Pct: 18 } },
+      bundledMaster,
+    );
+    expect(r.options[3].totalCTC).toBe(4346000); // mround(3683184 × 1.18, 1000)
+    expect(r.options[3].incrementPct).toBeCloseTo(0.18, 10);
+    expect(r.summary.offerCTC).toBe(4346000);
+    expect(r.summary.offerMPLI).toBe(522000); // mround(4346000 × 12%, 1000)
+    expect(r.summary.offerFixed).toBe(3824000);
   });
 
   it('flags a negative Personal Allowance when Basic% / HRA% are too high', () => {
@@ -149,10 +162,33 @@ describe('computeOffer — edge cases', () => {
     expect(metro.flags.hraCapExceeded).toBe(false); // 60 == metro cap, not above
   });
 
-  it('suggests the correct MPLI band per level', () => {
+  it('suggests the correct variable band per level', () => {
     expect(defaultMpliForLevel(bundledMaster, 'M-9')).toBe(12);
     expect(defaultMpliForLevel(bundledMaster, 'M-8')).toBe(15);
     expect(defaultMpliForLevel(bundledMaster, 'M-5')).toBe(20);
+    // M2-M4 default APB = 25% of Fixed ≡ 20% of CTC (HR-confirmed policy)
+    expect(defaultMpliForLevel(bundledMaster, 'M-2')).toBe(25);
+    expect(defaultMpliForLevel(bundledMaster, 'M-4')).toBe(25);
+  });
+
+  it('hides unselected (zero) components on the fitment view, keeping totals', () => {
+    const r = computeOffer(golden, bundledMaster); // lta N, nps 0
+    const keys = displayLines(r.structure, true).map((l) => l.key);
+    expect(keys).not.toContain('lta');
+    expect(keys).not.toContain('nps');
+    expect(keys).toContain('totalReimbB'); // non-zero subtotal stays
+    expect(keys).toContain('totalRetiralsC');
+    expect(keys).toContain('personalAllowance');
+    // full (unfiltered) view still has everything
+    expect(displayLines(r.structure, false).map((l) => l.key)).toContain('lta');
+  });
+
+  it('drops zero subtotals too (PF off, NPS 0 -> no retirals section)', () => {
+    const r = computeOffer({ ...golden, structure: { ...golden.structure, pf: 'N', npsPct: 0 } }, bundledMaster);
+    const keys = displayLines(r.structure, true).map((l) => l.key);
+    expect(keys).not.toContain('pf');
+    expect(keys).not.toContain('totalRetiralsC');
+    expect(keys).toContain('bPlusC'); // BER still non-zero
   });
 
   it('throws MissingLevelError when no data is loaded for the level', () => {
@@ -163,7 +199,7 @@ describe('computeOffer — edge cases', () => {
 describe('computeOffer — M2-M4 band (M-2, APB 25%, option 2)', () => {
   const m2: Inputs = {
     candidate: { currentAnnualFixedWithoutGratuity: 3104004, currentAnnualVariable: 579180 },
-    offer: { level: 'M-2', variablePct: 25, finalOption: 2, manualOption4CTC: 15_000_000, carAllowance: 0 },
+    offer: { level: 'M-2', variablePct: 25, finalOption: 2, manualOption4Mode: 'amount', manualOption4CTC: 15_000_000, manualOption4Pct: 15, carAllowance: 0 },
     structure: { basicPct: 40, hraPct: 40, npsPct: 0, pf: 'Y', foodCouponsMonthly: 9600 },
     eligibility: { isPlant: true, isMetro: false, transport: 'Y', cea: 'ONE', cha: 'ONE', ber: 'Y', lta: 'N' },
   };
@@ -195,9 +231,21 @@ describe('computeOffer — M2-M4 band (M-2, APB 25%, option 2)', () => {
     expect(r.overAndAbove.gratuityAnnual).toBeCloseTo(81491.02, 2);
   });
 
-  it('exposes Car Allowance and Total Remuneration', () => {
+  it('exposes Car Allowance and Total Remuneration (only when non-zero)', () => {
     const ca = computeOffer({ ...m2, offer: { ...m2.offer, carAllowance: 120000 } }, bundledMaster);
     expect(lineAnnual(ca, 'carAllowance')).toBe(120000);
     expect(ca.summary.totalRemuneration).toBe(4235500 + 120000);
+    // zero car allowance -> the redundant rows are not emitted at all
+    const keys = r.structure.lines.map((l) => l.key);
+    expect(keys).not.toContain('carAllowance');
+    expect(keys).not.toContain('totalRemuneration');
+  });
+
+  it('suggests a workable Basic% when Personal Allowance goes negative', () => {
+    expect(r.flags.negativePersonalAllowance).toBe(true);
+    const fix = suggestBasicPct(m2, bundledMaster, [30, 35, 40, 45, 50]);
+    expect(fix).not.toBeNull();
+    expect(fix!.basicPct).toBe(35); // largest option below 40 with PA >= 0
+    expect(fix!.personalAllowance).toBeGreaterThanOrEqual(0);
   });
 });

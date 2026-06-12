@@ -1,8 +1,9 @@
 import type { OfferResult } from '../engine/types';
+import { displayLines } from '../engine/engine';
 import type { OfferMeta, Addons } from '../state/form';
 import { ADDON_ROWS, EMPTY_META, offerHeaderPairs } from '../state/form';
 import { formatINR } from './currency';
-import { STRUCTURE_REMARKS } from '../data/strings';
+import { STRUCTURE_REMARKS, GRATUITY_STATEMENT } from '../data/strings';
 
 export interface ClipboardOpts {
   paise?: boolean;
@@ -33,7 +34,8 @@ function bodyRows(result: OfferResult, opts: ClipboardOpts, extras: OfferExtras)
   const out: Row[] = [];
 
   out.push({ cells: ['Salary Component', 'Monthly (₹)', 'Annum (₹)', 'Remarks'], bold: true });
-  for (const l of result.structure.lines) {
+  // The export is the final fitment sheet: unselected (zero) components are omitted.
+  for (const l of displayLines(result.structure, true)) {
     out.push({ cells: [l.label, fmt(l.monthly), fmt(l.annual), STRUCTURE_REMARKS[l.key] ?? ''], bold: l.isSubtotal });
   }
 
@@ -50,7 +52,8 @@ function bodyRows(result: OfferResult, opts: ClipboardOpts, extras: OfferExtras)
       oa.mobileReimbIsAnnual ? 'Per year' : 'Per month',
     ],
   });
-  out.push({ cells: ['Gratuity', '', fmt(oa.gratuityAnnual), '4.81% of annual Basic'] });
+  // Policy: gratuity is stated, not calculated.
+  out.push({ cells: ['Gratuity', '', '', GRATUITY_STATEMENT] });
 
   if (extras.addons) {
     const addons = extras.addons;

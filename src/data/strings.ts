@@ -4,6 +4,10 @@ import { bandForLevel } from '../engine/engine';
 // All user-facing copy lives here, decoupled from the (pure-numeric) engine so
 // it can be revised or localised without touching logic.
 
+// Gratuity is presented as a statement, not a computed amount (HR policy).
+export const GRATUITY_STATEMENT =
+  'It is paid when you retire or resign from the organization provided you complete 5 years of continuous service.';
+
 // Offer-letter "Remarks" column text (mirrors the Excel remarks). Static.
 export const STRUCTURE_REMARKS: Record<string, string> = {
   basic: 'Fixed, guaranteed sum paid monthly. Capped 15–40% of CTC. Retirals and HRA are linked to Basic.',
@@ -72,7 +76,7 @@ export function buildTooltips(i: Inputs): Record<string, string> {
     'oa.gpa': 'Group accident insurance cover for self, by level.',
     'oa.term': 'Term life cover for self, by level.',
     'oa.mobile': band.mobileAnnual ? 'Annual mobile reimbursement, by level.' : 'Monthly mobile bill reimbursement, by level.',
-    'oa.gratuity': 'Statutory gratuity provision = 4.81% of annual Basic. Payable after 5 years of continuous service.',
+    'oa.gratuity': GRATUITY_STATEMENT,
   };
 }
 

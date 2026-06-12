@@ -1,5 +1,7 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Inputs, OfferResult, LevelMaster, FinalOption } from '../engine/types';
+import { suggestBasicPct } from '../engine/engine';
+import { BASIC_OPTIONS } from '../data/data';
 import type { FormState } from '../state/form';
 import { Stepper, type StepDef } from './Stepper';
 import { Button, Eyebrow } from './common/ui';
@@ -66,6 +68,11 @@ export function Wizard({ form, setForm, master, inputs, result, tooltips, paise,
   const [step, setStep] = useState(1);
   const go = (n: number) => setStep(Math.min(4, Math.max(1, n)));
   const setFinal = (o: FinalOption) => setForm((f) => ({ ...f, offer: { ...f.offer, finalOption: o } }));
+  // Engine-computed fix when the Personal Allowance plug goes negative.
+  const paSuggestion = useMemo(
+    () => (result.flags.negativePersonalAllowance ? suggestBasicPct(inputs, master, BASIC_OPTIONS) : null),
+    [inputs, master, result.flags.negativePersonalAllowance],
+  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -123,7 +130,7 @@ export function Wizard({ form, setForm, master, inputs, result, tooltips, paise,
               </div>
             </div>
             <div className="lg:col-span-7">
-              <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={paise} compact />
+              <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={paise} compact paSuggestion={paSuggestion} />
             </div>
           </div>
         </div>
@@ -138,7 +145,7 @@ export function Wizard({ form, setForm, master, inputs, result, tooltips, paise,
             <p className="mb-3 mt-1 text-[12px] text-muted">Retention, joining and LTIP amounts appear in the copied and printed letter.</p>
             <AddonsSection form={form} setForm={setForm} />
           </div>
-          <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={paise} meta={form.meta} addons={form.addons} />
+          <StructurePanel result={result} inputs={inputs} tooltips={tooltips} paise={paise} hideZeroRows paSuggestion={paSuggestion} meta={form.meta} addons={form.addons} />
         </div>
       )}
 

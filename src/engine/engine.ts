@@ -50,8 +50,14 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
     let totalCTC: number;
     let incrementPct: number | null;
     if (opt === 4) {
-      incrementPct = null;
-      totalCTC = offer.manualOption4CTC;
+      if (offer.manualOption4Mode === 'percent') {
+        // Manual option with a user-chosen % increase.
+        incrementPct = offer.manualOption4Pct / 100;
+        totalCTC = mround(currentCTC * (1 + incrementPct), band.ctcRound);
+      } else {
+        incrementPct = null;
+        totalCTC = offer.manualOption4CTC;
+      }
     } else {
       incrementPct = INCREMENTS[opt - 1];
       totalCTC = mround(currentCTC * (1 + incrementPct), band.ctcRound);
@@ -150,7 +156,7 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
     mk('mpli', band.variableLineLabel, chosen.mpli, 'MPLI'),
     mk('grandTotal', 'Grand Total (Annual Target CTC)', grandTotalCTC, 'TOTAL', true),
   ];
-  if (band.hasCarAllowance) {
+  if (band.hasCarAllowance && offer.carAllowance > 0) {
     lines.push(mk('carAllowance', 'Car Allowance', offer.carAllowance, 'EXTRA'));
     lines.push(mk('totalRemuneration', 'Total Remuneration', grandTotalCTC + offer.carAllowance, 'TOTAL', true));
   }
@@ -182,4 +188,45 @@ export function computeOffer(inputs: Inputs, master: LevelMaster): OfferResult {
   };
 
   return { band, options, summary, structure: structureOut, overAndAbove, flags };
+}
+
+// Rows that always appear on the fitment sheet even when zero/negative.
+const ALWAYS_SHOW = new Set([
+  'basic', 'hra', 'personalAllowance', 'totalA', 'totalFixed', 'mpli', 'grandTotal', 'totalRemuneration',
+]);
+
+/**
+ * Structure lines for display. With `hideZero`, components that were not
+ * selected (annual value 0) are dropped — including subtotals that net to 0 —
+ * so the final fitment sheet only carries the components actually offered.
+ */
+export function displayLines(structure: CompStructure, hideZero: boolean): StructureLine[] {
+  if (!hideZero) return structure.lines;
+  return structure.lines.filter((l) => ALWAYS_SHOW.has(l.key) || Math.abs(l.annual) > 0.005);
+}
+
+/**
+ * When the Personal Allowance plug goes negative, find the largest Basic%
+ * below the current one (from the allowed options) that keeps it >= 0.
+ * Returns null when no candidate fixes it (HRA%/reimbursements too high).
+ */
+export function suggestBasicPct(
+  inputs: Inputs,
+  master: LevelMaster,
+  candidates: readonly number[],
+): { basicPct: number; personalAllowance: number } | null {
+  const lower = candidates
+    .filter((p) => p < inputs.structure.basicPct)
+    .sort((a, b) => b - a);
+  for (const p of lower) {
+    const r = computeOffer(
+      { ...inputs, structure: { ...inputs.structure, basicPct: p as Inputs['structure']['basicPct'] } },
+      master,
+    );
+    if (!r.flags.negativePersonalAllowance) {
+      const pa = r.structure.lines.find((l) => l.key === 'personalAllowance')!.annual;
+      return { basicPct: p, personalAllowance: pa };
+    }
+  }
+  return null;
 }

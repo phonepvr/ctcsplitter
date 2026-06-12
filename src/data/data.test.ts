@@ -24,6 +24,7 @@ describe('validateLevelMaster', () => {
     expect(m9.gpaPa).toBe(5000000);
     expect(m9.tlPa).toBe(5000000);
     expect(master.mpliBands['M-9']).toBe(12);
+    expect(master.mpliBands['M-2']).toBe(25); // APB 25% of Fixed = 20% of CTC
   });
 
   it('agrees with the bundled master on key M-9 figures', () => {

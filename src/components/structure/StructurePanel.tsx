@@ -1,13 +1,19 @@
 import { useState, type ReactNode } from 'react';
 import type { OfferResult, Inputs } from '../../engine/types';
+import { displayLines } from '../../engine/engine';
 import type { OfferMeta, Addons } from '../../state/form';
 import { ADDON_ROWS, EMPTY_META, offerHeaderPairs } from '../../state/form';
 import { formatINR } from '../../format/currency';
-import { STRUCTURE_REMARKS } from '../../data/strings';
+import { STRUCTURE_REMARKS, GRATUITY_STATEMENT } from '../../data/strings';
 import { copyOfferToClipboard } from '../../format/clipboard';
 import { InfoTooltip } from '../common/InfoTooltip';
 import { Button, Eyebrow } from '../common/ui';
 import { cn } from '../common/cn';
+
+export interface PaSuggestion {
+  basicPct: number;
+  personalAllowance: number;
+}
 
 interface PanelProps {
   result: OfferResult;
@@ -16,6 +22,10 @@ interface PanelProps {
   paise: boolean;
   /** compact = table + warnings only (no header/export/over-above/add-ons). */
   compact?: boolean;
+  /** Hide zero-value components (final fitment sheet / exports). */
+  hideZeroRows?: boolean;
+  /** Engine-computed fix for a negative Personal Allowance, if any. */
+  paSuggestion?: PaSuggestion | null;
   meta?: OfferMeta;
   addons?: Addons;
 }
@@ -33,13 +43,16 @@ function Alert({ tone, children }: { tone: 'red' | 'ember'; children: ReactNode 
   );
 }
 
-function ReconcileWarning({ result, inputs }: { result: OfferResult; inputs: Inputs }) {
+function ReconcileWarning({ result, inputs, paSuggestion }: { result: OfferResult; inputs: Inputs; paSuggestion?: PaSuggestion | null }) {
   const { flags } = result;
   const items: { tone: 'red' | 'ember'; text: string }[] = [];
   if (flags.negativePersonalAllowance) {
+    const fix = paSuggestion
+      ? ` Tip: Basic ${paSuggestion.basicPct}% would give a Personal Allowance of ${formatINR(paSuggestion.personalAllowance)}.`
+      : ' Reduce Basic % / HRA % or switch off reimbursements so the components fit.';
     items.push({
       tone: 'red',
-      text: 'Personal Allowance is negative — Basic % and/or HRA % are too high for this CTC. Lower them so the fixed components fit within Total Fixed Salary.',
+      text: `Personal Allowance is negative — Basic % and/or HRA % are too high for this CTC.${fix}`,
     });
   }
   if (flags.basicCapExceeded) {
@@ -88,7 +101,7 @@ function MetaHeader({ meta, level, isPlant }: { meta?: OfferMeta; level: string;
   );
 }
 
-function StructureTable({ result, tooltips, paise }: { result: OfferResult; tooltips: Record<string, string>; paise: boolean }) {
+function StructureTable({ result, tooltips, paise, hideZeroRows }: { result: OfferResult; tooltips: Record<string, string>; paise: boolean; hideZeroRows: boolean }) {
   const money = (n: number) => formatINR(n, { paise, symbol: false });
   return (
     <table className="w-full border-collapse text-[13px]">
@@ -101,7 +114,7 @@ function StructureTable({ result, tooltips, paise }: { result: OfferResult; tool
         </tr>
       </thead>
       <tbody>
-        {result.structure.lines.map((l) => (
+        {displayLines(result.structure, hideZeroRows).map((l) => (
           <tr key={l.key} className={cn('border-b border-graphite-100', l.isSubtotal && 'bg-surface font-semibold')}>
             <td className="py-1.5 pr-2">
               <span className="flex items-center">
@@ -127,7 +140,8 @@ function OverAboveTable({ result, tooltips, paise }: { result: OfferResult; tool
     { key: 'oa.gpa', label: 'Group Personal Accident', value: `${money(oa.groupPersonalAccidentAnnual)} p.a.`, remark: 'Self' },
     { key: 'oa.term', label: 'Term Insurance', value: `${money(oa.termInsuranceAnnual)} p.a.`, remark: 'Self' },
     { key: 'oa.mobile', label: 'Mobile Reimbursement', value: `${money(oa.mobileReimb)} ${oa.mobileReimbIsAnnual ? 'p.a.' : 'p.m.'}`, remark: oa.mobileReimbIsAnnual ? 'Per year' : 'Per month' },
-    { key: 'oa.gratuity', label: 'Gratuity', value: `${formatINR(oa.gratuityAnnual, { paise: true })} p.a.`, remark: 'After 5 years of service' },
+    // Policy: gratuity is stated, not calculated, on the fitment sheet.
+    { key: 'oa.gratuity', label: 'Gratuity', value: '—', remark: GRATUITY_STATEMENT },
   ];
   return (
     <table className="w-full border-collapse text-[13px]">
@@ -206,7 +220,7 @@ function ExportBar({
   );
 }
 
-export function StructurePanel({ result, inputs, tooltips, paise, compact = false, meta, addons }: PanelProps) {
+export function StructurePanel({ result, inputs, tooltips, paise, compact = false, hideZeroRows = false, paSuggestion, meta, addons }: PanelProps) {
   return (
     <section className="flex flex-col gap-4">
       {!compact && <MetaHeader meta={meta} level={inputs.offer.level} isPlant={inputs.eligibility.isPlant} />}
@@ -221,10 +235,10 @@ export function StructurePanel({ result, inputs, tooltips, paise, compact = fals
         </div>
       )}
 
-      <ReconcileWarning result={result} inputs={inputs} />
+      <ReconcileWarning result={result} inputs={inputs} paSuggestion={paSuggestion} />
 
       <div className="card p-3">
-        <StructureTable result={result} tooltips={tooltips} paise={paise} />
+        <StructureTable result={result} tooltips={tooltips} paise={paise} hideZeroRows={hideZeroRows} />
       </div>
 
       {!compact && (

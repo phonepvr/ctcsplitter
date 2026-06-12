@@ -34,7 +34,9 @@ export const DEFAULTS = {
   npsPct: 0,
   pf: 'Y' as const,
   foodCouponsMonthly: 9600,
+  manualOption4Mode: 'amount' as const,
   manualOption4CTC: 15_000_000,
+  manualOption4Pct: 15,
   carAllowance: 0,
   variableFallback: 12,
 };
@@ -51,7 +53,13 @@ export function normalizeChildCount(raw: string): ChildCount {
 export function buildDefaultInputs(level: LevelId, variablePct: number): Inputs {
   return {
     candidate: { currentAnnualFixedWithoutGratuity: 0, currentAnnualVariable: 0 },
-    offer: { level, variablePct, finalOption: 2, manualOption4CTC: DEFAULTS.manualOption4CTC, carAllowance: 0 },
+    offer: {
+      level, variablePct, finalOption: 2,
+      manualOption4Mode: DEFAULTS.manualOption4Mode,
+      manualOption4CTC: DEFAULTS.manualOption4CTC,
+      manualOption4Pct: DEFAULTS.manualOption4Pct,
+      carAllowance: 0,
+    },
     structure: {
       basicPct: DEFAULTS.basicPct,
       hraPct: DEFAULTS.hraPct,

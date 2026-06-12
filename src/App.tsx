@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LevelMaster } from './engine/types';
-import { computeOffer, MissingLevelError } from './engine/engine';
+import { computeOffer, defaultMpliForLevel, MissingLevelError } from './engine/engine';
 import { buildTooltips } from './data/strings';
 import { emptyMaster, hasData, parseUserJson } from './data/dataProvider';
 import { initialForm, toInputs, type FormState } from './state/form';
@@ -63,6 +63,18 @@ export default function App() {
         .catch(() => undefined);
     }
   }, []);
+
+  // Auto-populate the MPLI/APB % from the band default whenever tables load
+  // (level changes already re-sync it in the Offer step).
+  useEffect(() => {
+    if (!hasData(master)) return;
+    setForm((f) => {
+      const d = defaultMpliForLevel(master, f.offer.level);
+      return d !== undefined && d !== f.offer.variablePct
+        ? { ...f, offer: { ...f.offer, variablePct: d } }
+        : f;
+    });
+  }, [master]);
 
   const inputs = useMemo(() => toInputs(form), [form]);
   const tooltips = useMemo(() => buildTooltips(inputs), [inputs]);

@@ -58,26 +58,36 @@ const patchers = (setForm: SetForm) => ({
 export function CandidateSection({ form, setForm }: Omit<SectionProps, 'master'>) {
   const set = patchers(setForm).candidate;
   const c = form.candidate;
-  const d = deriveCandidate(c);
+  const mode = form.entryMode;
+  const d = deriveCandidate(c, mode);
   const fmt = (n: number) => formatINR(n, { symbol: true });
+  const suffix = mode === 'annual' ? '/yr' : '/mo';
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
       <div className="flex flex-col gap-3 lg:col-span-7">
-        <NumberField id="cand-basic" label="Basic" value={c.basic} onChange={(v) => set({ basic: v })} />
+        <ToggleField<'monthly' | 'annual'>
+          label="Amounts entered as"
+          tooltip="Choose how you are typing the candidate's current components. Annual amounts are divided by 12 internally; totals always show both."
+          value={mode}
+          options={[{ value: 'annual', label: 'Annual' }, { value: 'monthly', label: 'Monthly' }]}
+          onChange={(v) => setForm((f) => ({ ...f, entryMode: v }))}
+        />
+        <NumberField id="cand-basic" label="Basic" suffix={suffix} value={c.basic} onChange={(v) => set({ basic: v })} />
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Flexible allowance</div>
         {FLEX_FIELDS.map((f) => (
-          <NumberField key={f.key} id={`cand-${f.key}`} label={f.label} value={c[f.key]} onChange={(v) => set({ [f.key]: v } as Partial<CandidateItemized>)} />
+          <NumberField key={f.key} id={`cand-${f.key}`} label={f.label} suffix={suffix} value={c[f.key]} onChange={(v) => set({ [f.key]: v } as Partial<CandidateItemized>)} />
         ))}
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Retirals</div>
         {RETIRAL_FIELDS.map((f) => (
-          <NumberField key={f.key} id={`cand-${f.key}`} label={f.label} value={c[f.key]} onChange={(v) => set({ [f.key]: v } as Partial<CandidateItemized>)} />
+          <NumberField key={f.key} id={`cand-${f.key}`} label={f.label} suffix={suffix} value={c[f.key]} onChange={(v) => set({ [f.key]: v } as Partial<CandidateItemized>)} />
         ))}
-        <NumberField id="cand-variable" label="Variable Pay / APLI / MPLI" value={c.variable} onChange={(v) => set({ variable: v })} />
+        <NumberField id="cand-variable" label="Variable Pay / APLI / MPLI" suffix={suffix} value={c.variable} onChange={(v) => set({ variable: v })} />
       </div>
       <div className="lg:col-span-5">
         <div className="sticky top-4 flex flex-col gap-1 rounded border border-hairline bg-surface p-3">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Running totals</div>
           <ReadoutRow label="Total fixed (monthly)" value={fmt(d.totalFixedMonthly)} />
+          <ReadoutRow label="Total fixed (annual)" value={fmt(d.totalFixedMonthly * 12)} />
           <ReadoutRow label={INPUT_COPY.currentAnnualFixedWithoutGratuity.label} tooltip={INPUT_COPY.currentAnnualFixedWithoutGratuity.tooltip} value={fmt(d.currentAnnualFixedWithoutGratuity)} strong />
           <ReadoutRow label={INPUT_COPY.currentAnnualVariable.label} tooltip={INPUT_COPY.currentAnnualVariable.tooltip} value={fmt(d.currentAnnualVariable)} strong />
           <div className="mt-1 border-t border-hairline pt-2">
@@ -107,14 +117,39 @@ export function OfferSection({ form, setForm, master }: SectionProps) {
   return (
     <div className="flex flex-col gap-3">
       <SelectField<LevelId> id="offer-level" label={INPUT_COPY.level.label} value={form.offer.level} options={LEVEL_OPTIONS.map((l) => ({ value: l, label: l }))} onChange={onLevelChange} />
-      <SelectField<number> id="offer-variable" label={band.variablePctLabel} tooltip={`Variable pay (${band.variableShortLabel}) — ${band.variableOfFixed ? '% of Fixed' : '% of CTC'}. Defaults to the band rate for the level.`} value={form.offer.variablePct} options={band.variablePctOptions.map((p) => ({ value: p, label: `${p}%` }))} onChange={(raw) => set({ variablePct: Number(raw) })} />
+      <SelectField<number>
+        id="offer-variable"
+        label={band.variablePctLabel}
+        tooltip={
+          band.variableOfFixed
+            ? `APB is applied on Fixed salary (auto-set per level; override if needed). E.g. 25% of Fixed = ${((25 / 125) * 100).toFixed(0)}% of CTC.`
+            : `Variable pay (${band.variableShortLabel}) as % of CTC. Auto-set to the band rate for the level; override if needed.`
+        }
+        value={form.offer.variablePct}
+        options={band.variablePctOptions.map((p) => ({
+          value: p,
+          label: band.variableOfFixed ? `${p}% of Fixed (= ${((p / (100 + p)) * 100).toFixed(1).replace(/\.0$/, '')}% of CTC)` : `${p}%`,
+        }))}
+        onChange={(raw) => set({ variablePct: Number(raw) })}
+      />
       <SelectField<FinalOption> id="offer-final" label={INPUT_COPY.finalOption.label} tooltip={INPUT_COPY.finalOption.tooltip} value={form.offer.finalOption} options={[
         { value: 1, label: 'Option 1 · +10%' },
         { value: 2, label: 'Option 2 · +15%' },
         { value: 3, label: 'Option 3 · +20%' },
         { value: 4, label: 'Option 4 · Manual' },
       ]} onChange={(raw) => set({ finalOption: Number(raw) as FinalOption })} />
-      <NumberField id="offer-manual" label={INPUT_COPY.manualOption4CTC.label} tooltip={INPUT_COPY.manualOption4CTC.tooltip} value={form.offer.manualOption4CTC} step={1000} onChange={(v) => set({ manualOption4CTC: v })} />
+      <ToggleField<'amount' | 'percent'>
+        label="Option 4 — manual mode"
+        tooltip="Build option 4 either from an absolute Total CTC, or from a custom % increase on the current CTC."
+        value={form.offer.manualOption4Mode}
+        options={[{ value: 'amount', label: 'Absolute CTC' }, { value: 'percent', label: '% increase' }]}
+        onChange={(v) => set({ manualOption4Mode: v })}
+      />
+      {form.offer.manualOption4Mode === 'amount' ? (
+        <NumberField id="offer-manual" label={INPUT_COPY.manualOption4CTC.label} tooltip={INPUT_COPY.manualOption4CTC.tooltip} value={form.offer.manualOption4CTC} step={1000} onChange={(v) => set({ manualOption4CTC: v })} />
+      ) : (
+        <NumberField id="offer-manual-pct" label="Option 4 — % increase" tooltip="Custom increase applied to the current total CTC (rounded per band rules)." prefix="" suffix="%" step={0.5} value={form.offer.manualOption4Pct} onChange={(v) => set({ manualOption4Pct: v })} />
+      )}
       {band.hasCarAllowance && (
         <NumberField id="offer-car" label="Car Allowance (p.a.)" tooltip="Optional car allowance, added to Total Remuneration (M-2 to M-4)." value={form.offer.carAllowance} step={1000} onChange={(v) => set({ carAllowance: v })} />
       )}
